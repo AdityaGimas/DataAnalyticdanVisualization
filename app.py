@@ -168,25 +168,25 @@ header[data-testid="stHeader"] {{ display: none; }}
 
 /* KPI Strip Enhancements */
 .kpi-strip {{
-    display:flex; align-items:stretch; gap: 0.8rem;
+    display:flex; align-items:stretch; gap: 0.5rem;
     margin-bottom: 0.5rem;
 }}
 .kpi-item {{ 
     flex:1; text-align:left; 
-    padding: 0.6rem 1rem;
+    padding: 0.1rem 1rem;
     background: {CARD_BG}; 
     border:1px solid {BORDER_COLOR}; 
     border-radius:8px;
     box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
 }}
 .kpi-title-box {{
-    display: flex; flex-direction: column; justify-content: center;
+    display: flex:1; flex-direction: column; justify-content: center;
 }}
 .kpi-l {{ font-size:0.7rem; color: {TEXT_MUTED}; text-transform:uppercase; letter-spacing:.05em; font-weight:700; margin-bottom: 0.1rem;}}
-.kpi-v {{ font-size:1.3rem; font-weight:800; color: {TEXT_MAIN}; line-height:1.2;}}
+.kpi-v {{ font-size:1rem; font-weight:800; color: {TEXT_MAIN}; line-height:1.2;}}
 
 /* Header / Title injected in Card */
-.dash-title {{ font-size:1rem; font-weight:800; color: {TEXT_MAIN}; letter-spacing:-.02em; margin-bottom:0.1rem;}}
+.dash-title {{ font-size:0.9rem; font-weight:800; color: {TEXT_MAIN}; letter-spacing:-.02em; margin-bottom:0.1rem;}}
 .dash-sub {{ font-size:0.7rem; color: {TEXT_MUTED}; font-weight: 500; }}
 
 /* Chart box */
