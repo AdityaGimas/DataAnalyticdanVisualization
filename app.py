@@ -112,9 +112,9 @@ if is_dark:
     SF = "#F87171"   # red
     SG = "#2DD4BF"   # teal
 else:
-    BG_COLOR = "#F8FAFC"       # slate-50
+    BG_COLOR = "#FFFAF4"       # warm cream / off-white untuk main layout
     SIDEBAR_BG = "#FAF4EC"     # light warm cream / cokelat muda
-    CARD_BG = "#FFFFFF"
+    CARD_BG = "#FFFFFF"        # Kotak putih untuk grafik
     BORDER_COLOR = "#E2E8F0"   # slate-200
     TEXT_MAIN = "#0F172A"      # slate-900
     TEXT_MUTED = "#64748B"     # slate-500
@@ -166,6 +166,15 @@ section[data-testid="stSidebar"] > div {{
 [data-testid="stHorizontalBlock"] {{ gap: 0.8rem !important; }}
 header[data-testid="stHeader"] {{ display: none; }}
 
+/* Dashboard Cards (Targeting all main columns to wrap everything in a white box) */
+section.main div[data-testid="column"] {{
+    background-color: {CARD_BG} !important;
+    border: 1px solid {BORDER_COLOR} !important;
+    border-radius: 8px !important;
+    padding: 0.8rem !important;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04) !important;
+}}
+
 /* KPI Strip Enhancements */
 .kpi-strip {{
     display:flex; align-items:stretch; gap: 0.5rem;
@@ -173,32 +182,28 @@ header[data-testid="stHeader"] {{ display: none; }}
 }}
 .kpi-item {{ 
     flex:1; text-align:left; 
-    padding: 0.1rem 1rem;
-    background: {CARD_BG}; 
-    border:1px solid {BORDER_COLOR}; 
-    border-radius:8px;
-    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    background: transparent !important; 
+    border: none !important; 
 }}
 .kpi-title-box {{
-    display: flex:1; flex-direction: column; justify-content: center;
+    display: flex; flex: 1; flex-direction: column; justify-content: center;
 }}
-.kpi-l {{ font-size:0.7rem; color: {TEXT_MUTED}; text-transform:uppercase; letter-spacing:.05em; font-weight:700; margin-bottom: 0.1rem;}}
-.kpi-v {{ font-size:1rem; font-weight:800; color: {TEXT_MAIN}; line-height:1.2;}}
+.kpi-l {{ font-size:0.8rem; color: {TEXT_MUTED}; text-transform:uppercase; letter-spacing:.05em; font-weight:700; margin-bottom: 0.1rem;}}
+.kpi-v {{ font-size:1.2rem; font-weight:800; color: {TEXT_MAIN}; line-height:1.2;}}
 
 /* Header / Title injected in Card */
-.dash-title {{ font-size:0.9rem; font-weight:800; color: {TEXT_MAIN}; letter-spacing:-.02em; margin-bottom:0.1rem;}}
-.dash-sub {{ font-size:0.7rem; color: {TEXT_MUTED}; font-weight: 500; }}
+.dash-title {{ font-size:1rem; font-weight:800; color: {TEXT_MAIN}; letter-spacing:-.02em; margin-bottom:0.1rem;}}
+.dash-sub {{ font-size:0.8rem; color: {TEXT_MUTED}; font-weight: 500; }}
 
-/* Chart box */
+/* Chart box wrapper */
 .cbox {{
-    background: {CARD_BG}; border:1px solid {BORDER_COLOR};
-    border-radius:8px; padding:0.6rem 0.8rem 0.1rem;
-    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-    margin-bottom: 0.5rem;
-    height: 100%;
+    background: transparent !important; 
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin-bottom: 0.2rem;
 }}
-.ct  {{ font-size:0.85rem; font-weight:700; color: {TEXT_MAIN}; margin:0 0 0.1rem 0; letter-spacing:-.01em;}}
-.cs  {{ font-size:0.65rem; color: {TEXT_MUTED}; margin:0 0 0.2rem 0; font-weight:400;}}
+.ct  {{ font-size:0.75rem; font-weight:700; color: {TEXT_MAIN}; margin:0 0 0.1rem 0; letter-spacing:-.01em;}}
 
 /* Sidebar brand styling */
 .brand {{ font-size:2rem; font-weight:800; color: {TEXT_MAIN}; letter-spacing:-.02em; line-height:1.2; margin-top:-2rem; }}
@@ -399,7 +404,7 @@ def short(series):
 r1_col1, r1_col2, r1_col3 = st.columns(3)
 
 with r1_col1:
-    box("📈 Tren Keuangan Wilayah", "Pergerakan Rev, Biaya & Profit")
+    box("📈 Tren Keuangan Wilayah")
     tr = (fdf.set_index("date").resample("ME")
           .agg(rev=("total_revenue","sum"), cost=("operating_cost","sum"), prof=("profit","sum"))
           .reset_index())
