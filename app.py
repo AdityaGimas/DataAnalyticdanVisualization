@@ -138,11 +138,11 @@ if is_dark:
     PRIMARY = "#8B5A2B"  
     SA = "#38BDF8"   
     SB = "#34D399"   
-    SC = "#FB923C"   
+    SC = "#FBBF24"   
     SD = "#818CF8"   
-    SE = "#FBBF24"   
+    SE = "#FDE047"   
     SF = "#F87171"   
-    SG = "#2DD4BF"   
+    SG = "#38BDF8"   
 else:
     BG_COLOR = "#FFFAF4"       # warm cream / off-white untuk main layout
     SIDEBAR_BG = "#FAF4EC"     # light warm cream / cokelat muda
@@ -682,7 +682,7 @@ with r2_col3:
         wd_pivot = wd_pivot.sort_values("diff", ascending=True) 
         
         fig7 = go.Figure()
-        fig7.add_trace(go.Bar(name="Weekday", y=wd_pivot["lbl"], x=wd_pivot["Weekday"], orientation="h", marker_color=SA))
+        fig7.add_trace(go.Bar(name="Weekday", y=wd_pivot["lbl"], x=wd_pivot["Weekday"], orientation="h", marker_color=TEXT_MAIN))
         fig7.add_trace(go.Bar(name="Weekend", y=wd_pivot["lbl"], x=wd_pivot["Weekend"], orientation="h", marker_color=TEXT_MUTED))
         fig7.update_layout(
             barmode="group", showlegend=True, 
