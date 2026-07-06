@@ -658,10 +658,14 @@ with r2_col2:
         ch = fdf.groupby("branch_name")[["dine_in_percent","delivery_percent","takeaway_percent"]].mean().reset_index().sort_values("dine_in_percent", ascending=True)
         ch["lbl"] = short(ch["branch_name"])
         fig6 = go.Figure()
-        fig6.add_trace(go.Bar(name="Dine-in", y=ch["lbl"], x=ch["dine_in_percent"], orientation="h", marker_color=SA))
+        fig6.add_trace(go.Bar(name="Dine-in", y=ch["lbl"], x=ch["dine_in_percent"], orientation="h", marker_color=PRIMARY))
         fig6.add_trace(go.Bar(name="Delivery", y=ch["lbl"], x=ch["delivery_percent"], orientation="h", marker_color=SC))
-        fig6.add_trace(go.Bar(name="Takeaway", y=ch["lbl"], x=ch["takeaway_percent"], orientation="h", marker_color=SB))
-        fig6.update_layout(barmode="stack", showlegend=False, xaxis=dict(ticksuffix="%"), font=dict(color=PLOT_TEXT))
+        fig6.add_trace(go.Bar(name="Takeaway", y=ch["lbl"], x=ch["takeaway_percent"], orientation="h", marker_color=SE))
+        fig6.update_layout(
+            barmode="stack", showlegend=True, 
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0, font=dict(color=PLOT_TEXT), traceorder="normal"),
+            xaxis=dict(ticksuffix="%"), font=dict(color=PLOT_TEXT)
+        )
         base(fig6, h=H_CHART, is_cat_y=True)
         st.plotly_chart(fig6, width="stretch", config=CFG)
 
@@ -680,6 +684,10 @@ with r2_col3:
         fig7 = go.Figure()
         fig7.add_trace(go.Bar(name="Wkday", y=wd_pivot["lbl"], x=wd_pivot["Weekday"], orientation="h", marker_color=SA))
         fig7.add_trace(go.Bar(name="Wkend", y=wd_pivot["lbl"], x=wd_pivot["Weekend"], orientation="h", marker_color=SG))
-        fig7.update_layout(barmode="group", showlegend=False, font=dict(color=PLOT_TEXT))
+        fig7.update_layout(
+            barmode="group", showlegend=True, 
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0, font=dict(color=PLOT_TEXT)),
+            font=dict(color=PLOT_TEXT)
+        )
         base(fig7, h=H_CHART, is_cat_y=True)
         st.plotly_chart(fig7, width="stretch", config=CFG)
