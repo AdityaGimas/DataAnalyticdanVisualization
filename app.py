@@ -191,12 +191,19 @@ html, body, [class*="css"] {{ font-family: 'Plus Jakarta Sans', sans-serif; }}
 header[data-testid="stHeader"] {{ background: transparent !important; }}
 
 /* Dashboard Cards */
-section.main div[data-testid="column"] {{
+div[data-testid="stVerticalBlockBorderWrapper"],
+div[data-testid="stVerticalBlockBorderWrapper"] > div,
+div[data-testid="stVerticalBlockBorderWrapper"] [data-testid="stVerticalBlock"] {{
     background-color: {CARD_BG} !important;
+}}
+div[data-testid="stVerticalBlockBorderWrapper"] {{
     border: 1px solid {BORDER_COLOR} !important;
     border-radius: 8px !important;
     padding: 0.8rem !important;
     box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04) !important;
+}}
+div[data-testid="stVerticalBlockBorderWrapper"] > div {{
+    gap: 0.2rem !important;
 }}
 
 /* KPI Strip — Card Box Style */
@@ -542,13 +549,6 @@ def base(fig, h, lm=0, rm=0, is_cat_y=False):
         )
     return fig
 
-def box(title, sub=""):
-    s = f'<div class="cs">{sub}</div>' if sub else ""
-    st.markdown(f'<div class="cbox"><div class="ct">{title}</div>{s}', unsafe_allow_html=True)
-
-def box_end():
-    st.markdown("</div>", unsafe_allow_html=True)
-
 def short(series):
     return series.str.title().str.replace("Kopiseru ", "", regex=False)
 
@@ -559,79 +559,77 @@ def short(series):
 r1_col1, r1_col2, r1_col3 = st.columns(3)
 
 with r1_col1:
-    box("Tren Pendapatan, Biaya & Profit")
-    tr = (fdf.set_index("date").resample("ME")
-          .agg(rev=("total_revenue","sum"), cost=("operating_cost","sum"), prof=("profit","sum"))
-          .reset_index())
-    sc1, sfx1 = idr_scale(tr[["rev","cost","prof"]].stack())
-    fig1 = go.Figure()
-    fig1.add_trace(go.Scatter(x=tr["date"], y=tr["rev"]/sc1, name="Pendapatan", mode="lines", line=dict(color=SA, width=2)))
-    fig1.add_trace(go.Scatter(x=tr["date"], y=tr["cost"]/sc1, name="Biaya", mode="lines", line=dict(color=SC, width=2)))
-    fig1.add_trace(go.Scatter(x=tr["date"], y=tr["prof"]/sc1, name="Profit", mode="lines", line=dict(color=SB, width=2)))
-    fig1.update_layout(
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0, font=dict(color=PLOT_TEXT)),
-        xaxis=dict(tickformat="%Y"),
-        yaxis=dict(title=dict(text=f"Nilai Rupiah ({sfx1.strip()})", font=dict(size=10)), tickformat=",.1f"),
-    )
-    base(fig1, h=H_CHART, lm=55)
-    st.plotly_chart(fig1, width="stretch", config=CFG)
-    box_end()
+    with st.container(border=True):
+        st.markdown('<div class="ct">Tren Pendapatan, Biaya & Profit</div>', unsafe_allow_html=True)
+        tr = (fdf.set_index("date").resample("ME")
+              .agg(rev=("total_revenue","sum"), cost=("operating_cost","sum"), prof=("profit","sum"))
+              .reset_index())
+        sc1, sfx1 = idr_scale(tr[["rev","cost","prof"]].stack())
+        fig1 = go.Figure()
+        fig1.add_trace(go.Scatter(x=tr["date"], y=tr["rev"]/sc1, name="Pendapatan", mode="lines", line=dict(color=SA, width=2)))
+        fig1.add_trace(go.Scatter(x=tr["date"], y=tr["cost"]/sc1, name="Biaya", mode="lines", line=dict(color=SC, width=2)))
+        fig1.add_trace(go.Scatter(x=tr["date"], y=tr["prof"]/sc1, name="Profit", mode="lines", line=dict(color=SB, width=2)))
+        fig1.update_layout(
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0, font=dict(color=PLOT_TEXT)),
+            xaxis=dict(tickformat="%Y"),
+            yaxis=dict(title=dict(text=f"Nilai Rupiah ({sfx1.strip()})", font=dict(size=10)), tickformat=",.1f"),
+        )
+        base(fig1, h=H_CHART, lm=55)
+        st.plotly_chart(fig1, width="stretch", config=CFG)
 
 with r1_col2:
-    box("Pendapatan dan Biaya per Cabang")
-    cb = fdf.groupby("branch_name").agg(rev=("total_revenue","sum"), cost=("operating_cost","sum")).reset_index().sort_values("rev", ascending=True)
-    cb["lbl"] = short(cb["branch_name"])
-    sc2, sfx2 = idr_scale(cb[["rev","cost"]].stack())
-    fig2 = go.Figure()
-    fig2.add_trace(go.Bar(name="Biaya", y=cb["lbl"], x=cb["cost"]/sc2, orientation="h", marker_color=SC))
-    fig2.add_trace(go.Bar(name="Pendapatan", y=cb["lbl"], x=cb["rev"]/sc2, orientation="h", marker_color=SA))
-    fig2.update_layout(
-        barmode="group", showlegend=True,
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0, font=dict(color=PLOT_TEXT)),
-        xaxis=dict(tickformat=",.1f", ticksuffix=sfx2),
-        font=dict(color=PLOT_TEXT)
-    )
-    base(fig2, h=H_CHART, is_cat_y=True)
-    st.plotly_chart(fig2, width="stretch", config=CFG)
-    box_end()
+    with st.container(border=True):
+        st.markdown('<div class="ct">Pendapatan dan Biaya per Cabang</div>', unsafe_allow_html=True)
+        cb = fdf.groupby("branch_name").agg(rev=("total_revenue","sum"), cost=("operating_cost","sum")).reset_index().sort_values("rev", ascending=True)
+        cb["lbl"] = short(cb["branch_name"])
+        sc2, sfx2 = idr_scale(cb[["rev","cost"]].stack())
+        fig2 = go.Figure()
+        fig2.add_trace(go.Bar(name="Biaya", y=cb["lbl"], x=cb["cost"]/sc2, orientation="h", marker_color=SC))
+        fig2.add_trace(go.Bar(name="Pendapatan", y=cb["lbl"], x=cb["rev"]/sc2, orientation="h", marker_color=SA))
+        fig2.update_layout(
+            barmode="group", showlegend=True,
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0, font=dict(color=PLOT_TEXT)),
+            xaxis=dict(tickformat=",.1f", ticksuffix=sfx2),
+            font=dict(color=PLOT_TEXT)
+        )
+        base(fig2, h=H_CHART, is_cat_y=True)
+        st.plotly_chart(fig2, width="stretch", config=CFG)
 
 with r1_col3:
-    box("Profit Margin Cabang")
-    nat_margin = ndf["profit_margin"].mean()
-    mg = fdf.groupby("branch_name")["profit_margin"].mean().reset_index().sort_values("profit_margin", ascending=True)
-    mg["lbl"] = short(mg["branch_name"])
-    mcol = [SB if v >= nat_margin else SF for v in mg["profit_margin"]]
-    fig3 = go.Figure(go.Bar(
-        x=mg["profit_margin"], y=mg["lbl"], orientation="h", marker_color=mcol,
-        text=[f"{v*100:.1f}%" for v in mg["profit_margin"]],
-        textposition="outside", textfont=dict(size=10, color=PLOT_TEXT),
-        cliponaxis=False, showlegend=False
-    ))
-    fig3.add_vline(x=nat_margin, line_dash="dash", line_color=SD)
-    fig3.add_annotation(
-        x=nat_margin, y=-0.08, yref="paper",
-        text=f"- - - Rata-rata Margin ({nat_margin*100:.1f}%)",
-        showarrow=False,
-        xanchor="left", yanchor="top",
-        font=dict(size=8, color=SD),
-        align="left",
-    )
-    x_min = mg["profit_margin"].min()
-    fig3.update_layout(
-        showlegend=False,
-        xaxis=dict(
-            showticklabels=False,
-            showgrid=True,
-            zeroline=True,
-            automargin=True,
-            range=[x_min * 1.35, mg["profit_margin"].max() * 1.45],
-        ),
-        font=dict(color=PLOT_TEXT)
-    )
-    base(fig3, h=H_CHART, is_cat_y=True, lm=80, rm=45)
-    fig3.update_layout(margin=dict(b=30))
-    st.plotly_chart(fig3, width="stretch", config=CFG)
-    box_end()
+    with st.container(border=True):
+        st.markdown('<div class="ct">Profit Margin Cabang</div>', unsafe_allow_html=True)
+        nat_margin = ndf["profit_margin"].mean()
+        mg = fdf.groupby("branch_name")["profit_margin"].mean().reset_index().sort_values("profit_margin", ascending=True)
+        mg["lbl"] = short(mg["branch_name"])
+        mcol = [SB if v >= nat_margin else SF for v in mg["profit_margin"]]
+        fig3 = go.Figure(go.Bar(
+            x=mg["profit_margin"], y=mg["lbl"], orientation="h", marker_color=mcol,
+            cliponaxis=False, showlegend=False
+        ))
+        fig3.add_vline(x=nat_margin, line_dash="dash", line_color=SD)
+        fig3.add_annotation(
+            x=nat_margin, y=-0.08, yref="paper",
+            text=f"- - - Rata-rata Margin ({nat_margin*100:.1f}%)",
+            showarrow=False,
+            xanchor="left", yanchor="top",
+            font=dict(size=8, color=SD),
+            align="left",
+        )
+        x_min = mg["profit_margin"].min()
+        fig3.update_layout(
+            showlegend=False,
+            xaxis=dict(
+                showticklabels=False,
+                showgrid=True,
+                zeroline=True,
+                automargin=True,
+                range=[x_min * 1.35, mg["profit_margin"].max() * 1.45],
+            ),
+            font=dict(color=PLOT_TEXT)
+        )
+        base(fig3, h=H_CHART, is_cat_y=True, lm=80, rm=45)
+        fig3.update_layout(margin=dict(b=30))
+        st.plotly_chart(fig3, width="stretch", config=CFG)
 
 # ============================================================
 # ROW 2: 3 Column Grid
@@ -639,51 +637,49 @@ with r1_col3:
 r2_col1, r2_col2, r2_col3 = st.columns(3)
 
 with r2_col1:
-    box("Rata-rata Nilai Transaksi")
-    nat_ticket = ndf["avg_ticket_size"].mean()
-    tk = fdf.groupby("branch_name")["avg_ticket_size"].mean().reset_index().sort_values("avg_ticket_size", ascending=True)
-    tk["lbl"] = short(tk["branch_name"])
-    tkcol = [SA if v >= nat_ticket else SE for v in tk["avg_ticket_size"]]
-    sc4, sfx4 = idr_scale(tk["avg_ticket_size"])
-    fig4 = go.Figure(go.Bar(
-        x=tk["avg_ticket_size"]/sc4, y=tk["lbl"], orientation="h", marker_color=tkcol,
-        text=[fmt_idr(v) for v in tk["avg_ticket_size"]],
-        textposition="outside", textfont=dict(size=10, color=PLOT_TEXT)
-    ))
-    fig4.add_vline(x=nat_ticket/sc4, line_dash="dash", line_color=SD)
-    fig4.update_layout(xaxis=dict(tickformat=",.1f", ticksuffix=sfx4), font=dict(color=PLOT_TEXT))
-    base(fig4, h=H_CHART, is_cat_y=True)
-    st.plotly_chart(fig4, width="stretch", config=CFG)
-    box_end()
+    with st.container(border=True):
+        st.markdown('<div class="ct">Rata-rata Nilai Transaksi</div>', unsafe_allow_html=True)
+        nat_ticket = ndf["avg_ticket_size"].mean()
+        tk = fdf.groupby("branch_name")["avg_ticket_size"].mean().reset_index().sort_values("avg_ticket_size", ascending=True)
+        tk["lbl"] = short(tk["branch_name"])
+        tkcol = [SA if v >= nat_ticket else SE for v in tk["avg_ticket_size"]]
+        sc4, sfx4 = idr_scale(tk["avg_ticket_size"])
+        fig4 = go.Figure(go.Bar(
+            x=tk["avg_ticket_size"]/sc4, y=tk["lbl"], orientation="h", marker_color=tkcol
+        ))
+        fig4.add_vline(x=nat_ticket/sc4, line_dash="dash", line_color=SD)
+        fig4.update_layout(xaxis=dict(tickformat=",.1f", ticksuffix=sfx4), font=dict(color=PLOT_TEXT))
+        base(fig4, h=H_CHART, is_cat_y=True)
+        st.plotly_chart(fig4, width="stretch", config=CFG)
 
 with r2_col2:
-    box("Komposisi Channel Penjualan")
-    ch = fdf.groupby("branch_name")[["dine_in_percent","delivery_percent","takeaway_percent"]].mean().reset_index().sort_values("dine_in_percent", ascending=True)
-    ch["lbl"] = short(ch["branch_name"])
-    fig6 = go.Figure()
-    fig6.add_trace(go.Bar(name="Dine-in", y=ch["lbl"], x=ch["dine_in_percent"], orientation="h", marker_color=SA))
-    fig6.add_trace(go.Bar(name="Delivery", y=ch["lbl"], x=ch["delivery_percent"], orientation="h", marker_color=SC))
-    fig6.add_trace(go.Bar(name="Takeaway", y=ch["lbl"], x=ch["takeaway_percent"], orientation="h", marker_color=SB))
-    fig6.update_layout(barmode="stack", showlegend=False, xaxis=dict(ticksuffix="%"), font=dict(color=PLOT_TEXT))
-    base(fig6, h=H_CHART, is_cat_y=True)
-    st.plotly_chart(fig6, width="stretch", config=CFG)
-    box_end()
+    with st.container(border=True):
+        st.markdown('<div class="ct">Komposisi Channel Penjualan</div>', unsafe_allow_html=True)
+        ch = fdf.groupby("branch_name")[["dine_in_percent","delivery_percent","takeaway_percent"]].mean().reset_index().sort_values("dine_in_percent", ascending=True)
+        ch["lbl"] = short(ch["branch_name"])
+        fig6 = go.Figure()
+        fig6.add_trace(go.Bar(name="Dine-in", y=ch["lbl"], x=ch["dine_in_percent"], orientation="h", marker_color=SA))
+        fig6.add_trace(go.Bar(name="Delivery", y=ch["lbl"], x=ch["delivery_percent"], orientation="h", marker_color=SC))
+        fig6.add_trace(go.Bar(name="Takeaway", y=ch["lbl"], x=ch["takeaway_percent"], orientation="h", marker_color=SB))
+        fig6.update_layout(barmode="stack", showlegend=False, xaxis=dict(ticksuffix="%"), font=dict(color=PLOT_TEXT))
+        base(fig6, h=H_CHART, is_cat_y=True)
+        st.plotly_chart(fig6, width="stretch", config=CFG)
 
 with r2_col3:
-    box("Transaksi Weekend dan Weekday")
-    wd = fdf.groupby(["branch_name","is_weekend"])["total_transactions"].mean().reset_index()
-    wd_pivot = wd.pivot(index="branch_name", columns="is_weekend", values="total_transactions")
-    if True not in wd_pivot.columns: wd_pivot[True] = 0.0
-    if False not in wd_pivot.columns: wd_pivot[False] = 0.0
-    wd_pivot = wd_pivot.fillna(0.0).reset_index().rename(columns={False: "Weekday", True: "Weekend"})
-    wd_pivot["lbl"]  = short(wd_pivot["branch_name"])
-    wd_pivot["diff"] = wd_pivot["Weekend"] - wd_pivot["Weekday"]
-    wd_pivot = wd_pivot.sort_values("diff", ascending=True) 
-    
-    fig7 = go.Figure()
-    fig7.add_trace(go.Bar(name="Wkday", y=wd_pivot["lbl"], x=wd_pivot["Weekday"], orientation="h", marker_color=SA))
-    fig7.add_trace(go.Bar(name="Wkend", y=wd_pivot["lbl"], x=wd_pivot["Weekend"], orientation="h", marker_color=SG))
-    fig7.update_layout(barmode="group", showlegend=False, font=dict(color=PLOT_TEXT))
-    base(fig7, h=H_CHART, is_cat_y=True)
-    st.plotly_chart(fig7, width="stretch", config=CFG)
-    box_end()
+    with st.container(border=True):
+        st.markdown('<div class="ct">Transaksi Weekend dan Weekday</div>', unsafe_allow_html=True)
+        wd = fdf.groupby(["branch_name","is_weekend"])["total_transactions"].mean().reset_index()
+        wd_pivot = wd.pivot(index="branch_name", columns="is_weekend", values="total_transactions")
+        if True not in wd_pivot.columns: wd_pivot[True] = 0.0
+        if False not in wd_pivot.columns: wd_pivot[False] = 0.0
+        wd_pivot = wd_pivot.fillna(0.0).reset_index().rename(columns={False: "Weekday", True: "Weekend"})
+        wd_pivot["lbl"]  = short(wd_pivot["branch_name"])
+        wd_pivot["diff"] = wd_pivot["Weekend"] - wd_pivot["Weekday"]
+        wd_pivot = wd_pivot.sort_values("diff", ascending=True) 
+        
+        fig7 = go.Figure()
+        fig7.add_trace(go.Bar(name="Wkday", y=wd_pivot["lbl"], x=wd_pivot["Weekday"], orientation="h", marker_color=SA))
+        fig7.add_trace(go.Bar(name="Wkend", y=wd_pivot["lbl"], x=wd_pivot["Weekend"], orientation="h", marker_color=SG))
+        fig7.update_layout(barmode="group", showlegend=False, font=dict(color=PLOT_TEXT))
+        base(fig7, h=H_CHART, is_cat_y=True)
+        st.plotly_chart(fig7, width="stretch", config=CFG)
