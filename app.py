@@ -58,11 +58,13 @@ df = load_data()
 # ============================================================
 st.markdown("<style>#MainMenu {visibility: hidden;} footer {visibility: hidden;} header {visibility: hidden;}</style>", unsafe_allow_html=True)
 
-nav_col1, nav_col2, nav_col3, nav_col4, nav_col5 = st.columns([1.1, 0.8, 1.2, 1.2, 0.7])
+nav_col1, nav_col2, nav_col3, nav_col4, nav_col5 = st.columns([0.9, 0.8, 1.1, 1.0, 1.3])
 
 with nav_col1:
-    st.markdown("<div class='brand' style='margin-top: 0.5rem;'>☕ Kopiseru</div>"
-                "<div class='brand-sub' style='margin-top: -2px;'>Dashboard Analytics</div>",
+    st.markdown("<div class='brand-container'>"
+                "<div class='brand'>☕ Kopiseru</div>"
+                "<div class='brand-sub'>Dashboard Analytics</div>"
+                "</div>",
                 unsafe_allow_html=True)
 
 with nav_col2:
@@ -92,7 +94,7 @@ with nav_col4:
                 selected_types.append(bt)
 
 with nav_col5:
-    theme_mode = st.radio("🎨 TEMA", ["Light Mode", "Dark Mode"], index=0, horizontal=False, label_visibility="collapsed")
+    theme_mode = st.radio("🎨 TEMA", ["Light Mode", "Dark Mode"], index=0, horizontal=True, label_visibility="collapsed")
     is_dark = (theme_mode == "Dark Mode")
     
 
@@ -208,38 +210,69 @@ section.main div[data-testid="column"] {{
 }}
 .ct  {{ font-size:0.75rem; font-weight:700; color: {TEXT_MAIN}; margin:0 0 0.1rem 0; letter-spacing:-.01em;}}
 
-/* Sidebar brand styling */
-.brand {{ font-size:1.2rem; font-weight:800; color: {TEXT_MAIN}; letter-spacing:-.02em; line-height:1.2; margin-top:-2rem; }}
-.brand-sub {{ font-size:0.7rem; color: {TEXT_MUTED}; font-weight: 500; margin-top:-2px; margin-bottom: 0.8rem; }}
+/* Navbar brand styling (Flexbox Alignment) */
+.brand {{ font-size:1.4rem; font-weight:800; color: {TEXT_MAIN}; letter-spacing:-.02em; line-height:1.1; margin:0; padding:0; }}
+.brand-sub {{ font-size:0.75rem; color: {TEXT_MUTED}; font-weight: 600; line-height:1.1; margin:0; padding:0; }}
+.brand-container {{ display: flex; flex-direction: column; justify-content: center; height: 40px; padding-left: 0.2rem; }}
 
 /* ==============================================================
-   MENGGABUNGKAN STYLING INPUT AGAR 100% SAMA (Select, Date, Popover)
+   INPUT UNIFICATION (Select, Date, Popover)
 ============================================================== */
-div[data-baseweb="select"] > div,
-div[data-baseweb="base-input"] > input,
-div[data-baseweb="base-input"] {{
+
+/* ── 1. Wrapper Luar: Selectbox & Date Input ── */
+div[data-baseweb="select"] > div {{
     background-color: {SIDEBAR_INPUT_BG} !important;
-    color: {SIDEBAR_INPUT_TEXT} !important;
     border: 1px solid {SIDEBAR_INPUT_BORDER} !important;
-    border-radius: 8px !important; /* Standar seragam */
+    border-radius: 8px !important;
     min-height: 40px !important;
     height: 40px !important;
-    box-sizing: border-box !important;
+    box-shadow: none !important;
+    transition: border-color 0.2s ease !important;
+}}
+div[data-baseweb="select"] > div:hover {{
+    border-color: {PRIMARY} !important;
+}}
+
+/* ── 2. Date Input: wrapper LUAR yang bisa terlihat ── */
+div[data-baseweb="input"] {{
+    background-color: {SIDEBAR_INPUT_BG} !important;
+    border: 1px solid {SIDEBAR_INPUT_BORDER} !important;
+    border-radius: 8px !important;
+    min-height: 40px !important;
+    height: 40px !important;
+    box-shadow: none !important;
+    transition: border-color 0.2s ease !important;
+}}
+div[data-baseweb="input"]:hover {{
+    border-color: {PRIMARY} !important;
+}}
+
+/* ── 3. Inner input (hapus background & border ganda) ── */
+div[data-baseweb="input"] input,
+div[data-baseweb="base-input"] input {{
+    background-color: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    color: {SIDEBAR_INPUT_TEXT} !important;
     font-weight: 500 !important;
     font-size: 14px !important;
-    box-shadow: none !important;
+    padding: 0 10px !important;
 }}
 
-/* Warna Teks Internal Selectbox */
+/* ── 4. Hapus wrapper base-input agar tidak double-box ── */
+div[data-baseweb="base-input"] {{
+    background-color: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    min-height: unset !important;
+    height: unset !important;
+}}
+
+/* ── 5. Warna Teks Selectbox ── */
 div[data-baseweb="select"] span {{
     color: {SIDEBAR_INPUT_TEXT} !important;
-}}
-
-/* Vertikal Alignment Date Input */
-div[data-baseweb="base-input"] > input {{
-    line-height: 40px !important;
-    padding-top: 0 !important;
-    padding-bottom: 0 !important;
+    font-weight: 500 !important;
+    font-size: 14px !important;
 }}
 
 /* Penyesuaian Layout Internal Popover Button */
@@ -312,15 +345,35 @@ div[data-testid="stCheckbox"] label > *:not(:has(div[data-testid="stMarkdownCont
 }}
 
 /* ==============================================================
-   RADIO BUTTON - TEMA (Bulat Penuh)
+   RADIO BUTTON - TEMA (Sejajar Horizontal, Vertikal Center)
 ============================================================== */
+div[data-testid="stRadio"] > div {{
+    display: flex !important;
+    align-items: center !important;
+    height: 40px !important;
+}}
+div[data-testid="stRadio"] div[role="radiogroup"] {{
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 12px !important;
+}}
+div[data-testid="stRadio"] div[role="radiogroup"] label {{
+    display: flex !important;
+    align-items: center !important;
+    margin: 0 !important;
+    cursor: pointer;
+    gap: 6px !important;
+}}
 div[data-testid="stRadio"] div[role="radiogroup"] label > *:not(:has(div[data-testid="stMarkdownContainer"])):not(input) {{
     background-color: {SIDEBAR_INPUT_BG} !important;
     border: 2px solid {SIDEBAR_INPUT_BORDER} !important;
-    width: 1.25rem !important;
-    height: 1.25rem !important;
-    margin-right: 0.5rem !important; 
-    border-radius: 50% !important; 
+    width: 1rem !important;
+    height: 1rem !important;
+    margin: 0 !important;
+    border-radius: 50% !important;
+    flex-shrink: 0 !important;
+    transition: background-color 0.2s ease, border-color 0.2s ease !important;
 }}
 div[data-testid="stRadio"] div[role="radiogroup"] label:has(input:checked) > *:not(:has(div[data-testid="stMarkdownContainer"])):not(input) {{
     background-color: {PRIMARY} !important;
@@ -329,11 +382,13 @@ div[data-testid="stRadio"] div[role="radiogroup"] label:has(input:checked) > *:n
 div[data-testid="stRadio"] div[role="radiogroup"] label > *:not(:has(div[data-testid="stMarkdownContainer"])):not(input) > * {{
     display: none !important;
 }}
-div[data-testid="stRadio"] div[role="radiogroup"] label {{
-    margin-bottom: 0.5rem !important;
-}}
-div[data-testid="stRadio"] div[role="radiogroup"] label:last-child {{
-    margin-bottom: 0 !important;
+div[data-testid="stRadio"] div[role="radiogroup"] label p {{
+    font-size: 0.8rem !important;
+    font-weight: 600 !important;
+    color: {TEXT_MAIN} !important;
+    margin: 0 !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
 }}
 
 /* Scrollbar */
