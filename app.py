@@ -525,10 +525,10 @@ CFG  = {"displayModeBar": False}
 # 📉 TINGGI GRAFIK DIPERKECIL
 H_CHART = 210 
 
-def base(fig, h, lm=0, rm=0, is_cat_y=False):
+def base(fig, h, lm=0, rm=0, bm=0, is_cat_y=False):
     fig.update_layout(
         height=h, paper_bgcolor=BG, plot_bgcolor=BG,
-        template=TPL, margin=dict(l=lm, r=rm, t=5, b=0),
+        template=TPL, margin=dict(l=lm, r=rm, t=5, b=bm),
         font=dict(family="Plus Jakarta Sans", size=10, color=PLOT_TEXT),
         hoverlabel=dict(bgcolor=CARD_BG, bordercolor=BORDER_COLOR, font=dict(family="Plus Jakarta Sans", size=11, color=TEXT_MAIN)),
     )
@@ -682,12 +682,13 @@ with r2_col3:
         wd_pivot = wd_pivot.sort_values("diff", ascending=True) 
         
         fig7 = go.Figure()
-        fig7.add_trace(go.Bar(name="Wkday", y=wd_pivot["lbl"], x=wd_pivot["Weekday"], orientation="h", marker_color=SA))
-        fig7.add_trace(go.Bar(name="Wkend", y=wd_pivot["lbl"], x=wd_pivot["Weekend"], orientation="h", marker_color=SG))
+        fig7.add_trace(go.Bar(name="Weekday", y=wd_pivot["lbl"], x=wd_pivot["Weekday"], orientation="h", marker_color=SA))
+        fig7.add_trace(go.Bar(name="Weekend", y=wd_pivot["lbl"], x=wd_pivot["Weekend"], orientation="h", marker_color=TEXT_MUTED))
         fig7.update_layout(
             barmode="group", showlegend=True, 
             legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0, font=dict(color=PLOT_TEXT)),
+            xaxis=dict(title=dict(text="Jumlah Transaksi", font=dict(size=10))),
             font=dict(color=PLOT_TEXT)
         )
-        base(fig7, h=H_CHART, is_cat_y=True)
+        base(fig7, h=H_CHART, is_cat_y=True, bm=30)
         st.plotly_chart(fig7, width="stretch", config=CFG)
