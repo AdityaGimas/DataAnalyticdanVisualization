@@ -449,7 +449,7 @@ def short(series):
 r1_col1, r1_col2, r1_col3 = st.columns(3)
 
 with r1_col1:
-    box("📈 Tren Keuangan Wilayah")
+    box("Tren Pendapatan, Biaya & Profit")
     tr = (fdf.set_index("date").resample("ME")
           .agg(rev=("total_revenue","sum"), cost=("operating_cost","sum"), prof=("profit","sum"))
           .reset_index())
@@ -466,7 +466,7 @@ with r1_col1:
     box_end()
 
 with r1_col2:
-    box("💰 Revenue vs Biaya", "Performa per cabang")
+    box("Pendapatan dan Biaya per Cabang")
     cb = fdf.groupby("branch_name").agg(rev=("total_revenue","sum"), cost=("operating_cost","sum")).reset_index().sort_values("rev", ascending=True)
     cb["lbl"] = short(cb["branch_name"])
     fig2 = go.Figure()
@@ -481,7 +481,7 @@ with r1_col2:
     box_end()
 
 with r1_col3:
-    box("📊 Profit Margin per Cabang", "Vs rata-rata nasional")
+    box("Profit Margin Cabang")
     nat_margin = ndf["profit_margin"].mean()
     mg = fdf.groupby("branch_name")["profit_margin"].mean().reset_index().sort_values("profit_margin", ascending=True)
     mg["lbl"] = short(mg["branch_name"])
@@ -503,7 +503,7 @@ with r1_col3:
 r2_col1, r2_col2, r2_col3 = st.columns(3)
 
 with r2_col1:
-    box("🎫 Avg Ticket Size", "Pembelanjaan per transaksi")
+    box("Rata-rata Nilai Transaksi")
     nat_ticket = ndf["avg_ticket_size"].mean()
     tk = fdf.groupby("branch_name")["avg_ticket_size"].mean().reset_index().sort_values("avg_ticket_size", ascending=True)
     tk["lbl"] = short(tk["branch_name"])
@@ -520,7 +520,7 @@ with r2_col1:
     box_end()
 
 with r2_col2:
-    box("🛍️ Komposisi Layanan", "Dine-in, Delivery, Takeaway")
+    box("Komposisi Channel Penjualan")
     ch = fdf.groupby("branch_name")[["dine_in_percent","delivery_percent","takeaway_percent"]].mean().reset_index().sort_values("dine_in_percent", ascending=True)
     ch["lbl"] = short(ch["branch_name"])
     fig6 = go.Figure()
@@ -533,7 +533,7 @@ with r2_col2:
     box_end()
 
 with r2_col3:
-    box("📅 Transaksi: Weekend vs Weekday", "Dasar penjadwalan")
+    box("Transaksi Weekend dan Weekday")
     wd = fdf.groupby(["branch_name","is_weekend"])["total_transactions"].mean().reset_index()
     wd_pivot = wd.pivot(index="branch_name", columns="is_weekend", values="total_transactions")
     if True not in wd_pivot.columns: wd_pivot[True] = 0.0
