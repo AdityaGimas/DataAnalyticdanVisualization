@@ -534,18 +534,18 @@ def base(fig, h, lm=0, rm=0, bm=0, is_cat_y=False):
     )
     fig.update_xaxes(
         gridcolor=GRID_COLOR, linecolor=BORDER_COLOR, zeroline=False, 
-        tickfont=dict(color=PLOT_TEXT, size=10)
+        tickfont=dict(color=PLOT_TEXT, size=10), title_font=dict(color=PLOT_TEXT)
     )
     if is_cat_y:
         fig.update_yaxes(
             gridcolor=GRID_COLOR, linecolor=BORDER_COLOR, zeroline=False, 
             type="category", dtick=1, automargin=True, 
-            tickfont=dict(color=PLOT_TEXT, size=10)
+            tickfont=dict(color=PLOT_TEXT, size=10), title_font=dict(color=PLOT_TEXT)
         )
     else:
         fig.update_yaxes(
             gridcolor=GRID_COLOR, linecolor=BORDER_COLOR, zeroline=False, 
-            tickfont=dict(color=PLOT_TEXT, size=10)
+            tickfont=dict(color=PLOT_TEXT, size=10), title_font=dict(color=PLOT_TEXT)
         )
     return fig
 
@@ -559,7 +559,7 @@ def short(series):
 r1_col1, r1_col2, r1_col3 = st.columns(3)
 
 with r1_col1:
-    with st.container(border=True):
+    with st.container():
         st.markdown('<div class="ct">Tren Pendapatan, Biaya & Profit</div>', unsafe_allow_html=True)
         tr = (fdf.set_index("date").resample("ME")
               .agg(rev=("total_revenue","sum"), cost=("operating_cost","sum"), prof=("profit","sum"))
@@ -572,13 +572,13 @@ with r1_col1:
         fig1.update_layout(
             legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0, font=dict(color=PLOT_TEXT)),
             xaxis=dict(tickformat="%Y"),
-            yaxis=dict(title=dict(text=f"Nilai Rupiah ({sfx1.strip()})", font=dict(size=10)), tickformat=",.1f"),
+            yaxis=dict(title=dict(text=f"Nilai Rupiah ({sfx1.strip()})", font=dict(size=10, color=PLOT_TEXT)), tickformat=",.1f"),
         )
         base(fig1, h=H_CHART, lm=55)
         st.plotly_chart(fig1, width="stretch", config=CFG)
 
 with r1_col2:
-    with st.container(border=True):
+    with st.container():
         st.markdown('<div class="ct">Pendapatan dan Biaya per Cabang</div>', unsafe_allow_html=True)
         cb = fdf.groupby("branch_name").agg(rev=("total_revenue","sum"), cost=("operating_cost","sum")).reset_index().sort_values("rev", ascending=True)
         cb["lbl"] = short(cb["branch_name"])
@@ -596,7 +596,7 @@ with r1_col2:
         st.plotly_chart(fig2, width="stretch", config=CFG)
 
 with r1_col3:
-    with st.container(border=True):
+    with st.container():
         st.markdown('<div class="ct">Profit Margin Cabang</div>', unsafe_allow_html=True)
         nat_margin = ndf["profit_margin"].mean()
         mg = fdf.groupby("branch_name")["profit_margin"].mean().reset_index().sort_values("profit_margin", ascending=True)
@@ -637,7 +637,7 @@ with r1_col3:
 r2_col1, r2_col2, r2_col3 = st.columns(3)
 
 with r2_col1:
-    with st.container(border=True):
+    with st.container():
         st.markdown('<div class="ct">Rata-rata Nilai Transaksi</div>', unsafe_allow_html=True)
         nat_ticket = ndf["avg_ticket_size"].mean()
         tk = fdf.groupby("branch_name")["avg_ticket_size"].mean().reset_index().sort_values("avg_ticket_size", ascending=True)
@@ -653,7 +653,7 @@ with r2_col1:
         st.plotly_chart(fig4, width="stretch", config=CFG)
 
 with r2_col2:
-    with st.container(border=True):
+    with st.container():
         st.markdown('<div class="ct">Komposisi Channel Penjualan</div>', unsafe_allow_html=True)
         ch = fdf.groupby("branch_name")[["dine_in_percent","delivery_percent","takeaway_percent"]].mean().reset_index().sort_values("dine_in_percent", ascending=True)
         ch["lbl"] = short(ch["branch_name"])
@@ -670,7 +670,7 @@ with r2_col2:
         st.plotly_chart(fig6, width="stretch", config=CFG)
 
 with r2_col3:
-    with st.container(border=True):
+    with st.container():
         st.markdown('<div class="ct">Transaksi Weekend dan Weekday</div>', unsafe_allow_html=True)
         wd = fdf.groupby(["branch_name","is_weekend"])["total_transactions"].mean().reset_index()
         wd_pivot = wd.pivot(index="branch_name", columns="is_weekend", values="total_transactions")
@@ -687,7 +687,7 @@ with r2_col3:
         fig7.update_layout(
             barmode="group", showlegend=True, 
             legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0, font=dict(color=PLOT_TEXT)),
-            xaxis=dict(title=dict(text="Jumlah Transaksi", font=dict(size=10))),
+            xaxis=dict(title=dict(text="Jumlah Transaksi", font=dict(size=10, color=PLOT_TEXT))),
             font=dict(color=PLOT_TEXT)
         )
         base(fig7, h=H_CHART, is_cat_y=True, bm=30)
