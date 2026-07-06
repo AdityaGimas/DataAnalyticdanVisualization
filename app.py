@@ -131,9 +131,9 @@ if is_dark:
     PLOT_TEXT = "#F8FAFC"      # Strong white for graph text in dark mode
     TPL = "plotly_dark"
     # Inputs (Disamakan semua jadi warna kotak input)
-    SIDEBAR_INPUT_BG = "#3E3025"
-    SIDEBAR_INPUT_TEXT = "#F2E6D8"
-    SIDEBAR_INPUT_BORDER = "#554437"
+    SIDEBAR_INPUT_BG = "#1E293B"       # match CARD_BG (slate-800)
+    SIDEBAR_INPUT_TEXT = "#F8FAFC"     # TEXT_MAIN
+    SIDEBAR_INPUT_BORDER = "#334155"   # BORDER_COLOR (slate-700)
     # Palette
     PRIMARY = "#8B5A2B"  
     SA = "#38BDF8"   
@@ -332,8 +332,19 @@ div[data-testid="stPopover"] button {{
     min-height: 40px !important;
 }}
 
+/* 2. Container teks direntangkan dan ditarik ke kiri */
+div[data-testid="stPopover"] button > div:first-child {{
+    flex-grow: 1 !important;
+    display: flex !important;
+    justify-content: flex-start !important;
+    align-items: center !important;
+}}
+
+/* 3. Teks rata kiri */
 div[data-testid="stPopover"] button p {{
     color: {SIDEBAR_INPUT_TEXT} !important;
+    margin: 0 !important;
+    text-align: left !important;
 }}
 
 /* Menghilangkan border bawaan saat aktif/focus */
