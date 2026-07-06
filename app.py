@@ -180,21 +180,44 @@ section.main div[data-testid="column"] {{
     box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04) !important;
 }}
 
-/* KPI Strip Enhancements */
+/* KPI Strip — Card Box Style */
 .kpi-strip {{
-    display:flex; align-items:stretch; gap: 0.5rem;
-    margin-bottom: 0.5rem;
-}}
-.kpi-item {{ 
-    flex:1; text-align:left; 
-    background: transparent !important; 
-    border: none !important; 
+    display: flex;
+    align-items: stretch;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
 }}
 .kpi-title-box {{
-    display: flex; flex: 1; flex-direction: column; justify-content: center;
+    flex: 1.2;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 0.6rem 0.8rem;
 }}
-.kpi-l {{ font-size:0.8rem; color: {TEXT_MUTED}; text-transform:uppercase; letter-spacing:.05em; font-weight:700; margin-bottom: 0.1rem;}}
-.kpi-v {{ font-size:1.2rem; font-weight:800; color: {TEXT_MAIN}; line-height:1.2;}}
+.kpi-card {{
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: {CARD_BG};
+    border: 1px solid {BORDER_COLOR};
+    border-radius: 10px;
+    padding: 0.6rem 1rem;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}}
+.kpi-card:hover {{
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    border-color: {PRIMARY};
+}}
+.kpi-icon {{
+    font-size: 1.5rem;
+    line-height: 1;
+    flex-shrink: 0;
+}}
+.kpi-body {{ display: flex; flex-direction: column; gap: 0.1rem; }}
+.kpi-l {{ font-size:0.7rem; color: {TEXT_MUTED}; text-transform:uppercase; letter-spacing:.06em; font-weight:700; margin:0; }}
+.kpi-v {{ font-size:1.25rem; font-weight:800; color: {TEXT_MAIN}; line-height:1.2; margin:0; }}
 
 /* Header / Title injected in Card */
 .dash-title {{ font-size:1rem; font-weight:800; color: {TEXT_MAIN}; letter-spacing:-.02em; margin-bottom:0.1rem;}}
@@ -434,21 +457,27 @@ avg_margin = fdf["profit_margin"].mean()
 
 st.markdown(f"""
 <div class="kpi-strip">
-  <div class="kpi-item kpi-title-box">
+  <div class="kpi-title-box">
     <div class="dash-title">{selected_province.title()} — {n_cabang} Cabang</div>
     <div class="dash-sub">{start_date.strftime('%d %b %y')} – {end_date.strftime('%d %b %y')}</div>
   </div>
-  <div class="kpi-item">
-    <div class="kpi-l">Total Revenue</div>
-    <div class="kpi-v">Rp {total_rev/1e6:,.1f}M</div>
+  <div class="kpi-card">
+    <div class="kpi-body">
+      <div class="kpi-l">Total Revenue</div>
+      <div class="kpi-v">Rp {total_rev/1e6:,.1f}M</div>
+    </div>
   </div>
-  <div class="kpi-item">
-    <div class="kpi-l">Total Profit</div>
-    <div class="kpi-v">Rp {total_prof/1e6:,.1f}M</div>
+  <div class="kpi-card">
+    <div class="kpi-body">
+      <div class="kpi-l">Total Profit</div>
+      <div class="kpi-v">Rp {total_prof/1e6:,.1f}M</div>
+    </div>
   </div>
-  <div class="kpi-item">
-    <div class="kpi-l">Avg Profit Margin</div>
-    <div class="kpi-v">{avg_margin*100:.1f}%</div>
+  <div class="kpi-card">
+    <div class="kpi-body">
+      <div class="kpi-l">Avg Profit Margin</div>
+      <div class="kpi-v">{avg_margin*100:.1f}%</div>
+    </div>
   </div>
 </div>
 """, unsafe_allow_html=True)
