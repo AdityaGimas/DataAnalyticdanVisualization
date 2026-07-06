@@ -597,11 +597,32 @@ with r1_col3:
     fig3 = go.Figure(go.Bar(
         x=mg["profit_margin"], y=mg["lbl"], orientation="h", marker_color=mcol,
         text=[f"{v*100:.1f}%" for v in mg["profit_margin"]],
-        textposition="outside", textfont=dict(size=10, color=PLOT_TEXT)
+        textposition="outside", textfont=dict(size=10, color=PLOT_TEXT),
+        cliponaxis=False, showlegend=False
     ))
     fig3.add_vline(x=nat_margin, line_dash="dash", line_color=SD)
-    fig3.update_layout(xaxis=dict(tickformat=".0%"), font=dict(color=PLOT_TEXT))
-    base(fig3, h=H_CHART, is_cat_y=True)
+    fig3.add_annotation(
+        x=nat_margin, y=-0.08, yref="paper",
+        text=f"- - - Rata-rata Margin ({nat_margin*100:.1f}%)",
+        showarrow=False,
+        xanchor="left", yanchor="top",
+        font=dict(size=8, color=SD),
+        align="left",
+    )
+    x_min = mg["profit_margin"].min()
+    fig3.update_layout(
+        showlegend=False,
+        xaxis=dict(
+            showticklabels=False,
+            showgrid=True,
+            zeroline=True,
+            automargin=True,
+            range=[x_min * 1.35, mg["profit_margin"].max() * 1.45],
+        ),
+        font=dict(color=PLOT_TEXT)
+    )
+    base(fig3, h=H_CHART, is_cat_y=True, lm=80, rm=45)
+    fig3.update_layout(margin=dict(b=30))
     st.plotly_chart(fig3, width="stretch", config=CFG)
     box_end()
 
