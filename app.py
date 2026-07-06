@@ -576,10 +576,11 @@ with r1_col2:
     cb["lbl"] = short(cb["branch_name"])
     sc2, sfx2 = idr_scale(cb[["rev","cost"]].stack())
     fig2 = go.Figure()
-    fig2.add_trace(go.Bar(name="Pendapatan", y=cb["lbl"], x=cb["rev"]/sc2, orientation="h", marker_color=SA))
     fig2.add_trace(go.Bar(name="Biaya", y=cb["lbl"], x=cb["cost"]/sc2, orientation="h", marker_color=SC))
+    fig2.add_trace(go.Bar(name="Pendapatan", y=cb["lbl"], x=cb["rev"]/sc2, orientation="h", marker_color=SA))
     fig2.update_layout(
-        barmode="group", showlegend=False,
+        barmode="group", showlegend=True,
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0, font=dict(color=PLOT_TEXT)),
         xaxis=dict(tickformat=",.1f", ticksuffix=sfx2),
         font=dict(color=PLOT_TEXT)
     )
