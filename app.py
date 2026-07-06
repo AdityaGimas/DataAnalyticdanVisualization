@@ -105,7 +105,7 @@ with nav_col4:
     branch_types = sorted(df["branch_type"].unique())
     
     # MENGGUNAKAN POPOVER & CHECKBOX SEBAGAI GANTI MULTISELECT
-    with st.popover("🏪 Tipe Cabang", use_container_width=True):
+    with st.popover("Tipe Cabang", use_container_width=True):
         selected_types = []
         for bt in branch_types:
             # Gunakan st.checkbox agar user memilih langsung dari list
@@ -311,15 +311,15 @@ div[data-baseweb="base-input"] {{
 }}
 
 /* ── 5. Warna Teks Selectbox ── */
+div[data-baseweb="select"] div,
 div[data-baseweb="select"] span {{
     color: {SIDEBAR_INPUT_TEXT} !important;
     font-weight: 500 !important;
-    font-size: 14px !important;
 }}
 
 /* Penyesuaian Layout Internal Popover Button */
 /* 1. Paksa tombol popover menjadi krem dengan selektor yang lebih spesifik */
-div[data-testid="stPopover"] > button {{
+div[data-testid="stPopover"] button {{
     background-color: {SIDEBAR_INPUT_BG} !important;
     color: {SIDEBAR_INPUT_TEXT} !important;
     border: 1px solid {SIDEBAR_INPUT_BORDER} !important;
@@ -332,8 +332,12 @@ div[data-testid="stPopover"] > button {{
     min-height: 40px !important;
 }}
 
+div[data-testid="stPopover"] button p {{
+    color: {SIDEBAR_INPUT_TEXT} !important;
+}}
+
 /* Menghilangkan border bawaan saat aktif/focus */
-div[data-testid="stPopover"] > button:focus {{
+div[data-testid="stPopover"] button:focus {{
     border-color: {PRIMARY} !important;
     box-shadow: none !important;
 }}   
@@ -352,17 +356,9 @@ div[data-testid="stPopover"] > button:focus {{
     background-color: transparent !important;
 }}
 
-/* 4. Ikon Chevron */
-div[data-testid="stPopover"] > button::after {{
-    content: "▼";
-    font-size: 0.6rem;
-    color: {TEXT_MUTED};
-    margin-left: 10px;
-}}
-
 /* Streamlit widgets texts inside navbar */
-.stCheckbox label,
-.stRadio label {{
+div[data-testid="stCheckbox"] label p,
+div[data-testid="stRadio"] label p {{
     color: {TEXT_MAIN} !important;
 }}
 
