@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
+import random
 
 # ============================================================
 # CONFIG
@@ -23,15 +24,21 @@ def load_data():
         df = pd.read_csv("kopiseru.csv")
     except:
         dates = pd.date_range(start="2023-01-01", end="2023-01-31")
-        branches = ["Kopiseru Sudirman", "Kopiseru Kemang", "Kopiseru Menteng"]
+        branches = ["Kopiseru Sudirman", "Kopiseru Kemang", "Kopiseru Menteng", "Kopiseru Senayan"]
         data = []
-        import random
         for d in dates:
             for b in branches:
                 rev = random.randint(5000000, 15000000)
                 cost = rev * random.uniform(0.5, 0.8)
+                
+                # Menyesuaikan variasi tipe cabang sesuai referensi
+                if "Sudirman" in b: b_type = "Office Area"
+                elif "Senayan" in b: b_type = "Mall"
+                elif "Kemang" in b: b_type = "Standalone"
+                else: b_type = "University"
+                
                 data.append({
-                    "date": d, "branch_name": b, "branch_province": "dki jakarta", "branch_type": "Kiosk",
+                    "date": d, "branch_name": b, "branch_province": "dki jakarta", "branch_type": b_type,
                     "day_of_week": d.weekday(), "total_revenue": rev, "operating_cost": cost, 
                     "profit": rev - cost, "profit_margin": (rev-cost)/rev, "total_transactions": random.randint(100, 300),
                     "avg_ticket_size": random.randint(30000, 60000), "transactions_per_employee": random.uniform(10, 30),
@@ -47,43 +54,47 @@ def load_data():
 df = load_data()
 
 # ============================================================
-# SIDEBAR
+# TOP NAVBAR
 # ============================================================
-with st.sidebar:
-    st.markdown("<div class='brand'>☕ Kopiseru</div>"
-                "<div class='brand-sub'>Area Manager Dashboard</div>",
-                unsafe_allow_html=True)
-    st.divider()
+st.markdown("<style>#MainMenu {visibility: hidden;} footer {visibility: hidden;} header {visibility: hidden;}</style>", unsafe_allow_html=True)
 
+nav_col1, nav_col2, nav_col3, nav_col4, nav_col5 = st.columns([1.1, 0.8, 1.2, 1.2, 0.7])
+
+with nav_col1:
+    st.markdown("<div class='brand' style='margin-top: 0.5rem;'>☕ Kopiseru</div>"
+                "<div class='brand-sub' style='margin-top: -2px;'>Dashboard Analytics</div>",
+                unsafe_allow_html=True)
+
+with nav_col2:
     provinces = sorted(df["branch_province"].unique())
     selected_province = st.selectbox(
         "📍 PROVINSI", options=provinces,
         index=provinces.index("dki jakarta") if "dki jakarta" in provinces else 0,
         format_func=lambda x: x.title(),
+        label_visibility="collapsed"
     )
-    
+
+with nav_col3:
     min_date, max_date = df["date"].min(), df["date"].max()
     date_range = st.date_input("📅 RENTANG TANGGAL", value=(min_date, max_date),
-                               min_value=min_date, max_value=max_date)
+                               min_value=min_date, max_value=max_date, label_visibility="collapsed")
     start_date, end_date = (date_range if len(date_range) == 2 else (min_date, max_date))
 
+with nav_col4:
     branch_types = sorted(df["branch_type"].unique())
-    st.markdown("<div style='font-size: 0.9rem; font-weight: 600; color: #334155; margin-top: 1rem; margin-bottom:0.5rem;'>🏪 TIPE CABANG</div>", unsafe_allow_html=True)
     
-    selected_types = []
-    for bt in branch_types:
-        if st.checkbox(bt.title(), value=True, key=f"chk_{bt}"):
-            selected_types.append(bt)
-            
-    if not selected_types:
-        selected_types = branch_types
-        
-    st.divider()
-    theme_mode = st.radio("🎨 TEMA", ["Light Mode", "Dark Mode"], index=0, horizontal=False)
+    # MENGGUNAKAN POPOVER & CHECKBOX SEBAGAI GANTI MULTISELECT
+    with st.popover("🏪 Tipe Cabang", use_container_width=True):
+        selected_types = []
+        for bt in branch_types:
+            # Gunakan st.checkbox agar user memilih langsung dari list
+            if st.checkbox(bt, value=True, key=f"filter_{bt}"):
+                selected_types.append(bt)
+
+with nav_col5:
+    theme_mode = st.radio("🎨 TEMA", ["Light Mode", "Dark Mode"], index=0, horizontal=False, label_visibility="collapsed")
     is_dark = (theme_mode == "Dark Mode")
     
-    st.divider()
-    st.caption("Data: 2021 – 2023  ·  40 cabang")
 
 # ============================================================
 # DESIGN SYSTEM (THEMING VARIABLES)
@@ -98,19 +109,19 @@ if is_dark:
     GRID_COLOR = "#334155"     # slate-700
     PLOT_TEXT = "#F8FAFC"      # Strong white for graph text in dark mode
     TPL = "plotly_dark"
-    # Inputs
+    # Inputs (Disamakan semua jadi warna kotak input)
     SIDEBAR_INPUT_BG = "#3E3025"
     SIDEBAR_INPUT_TEXT = "#F2E6D8"
     SIDEBAR_INPUT_BORDER = "#554437"
     # Palette
-    PRIMARY = "#8B5A2B"  # Cokelat tua untuk dark mode
-    SA = "#38BDF8"   # sky
-    SB = "#34D399"   # emerald
-    SC = "#FB923C"   # orange
-    SD = "#818CF8"   # indigo
-    SE = "#FBBF24"   # amber
-    SF = "#F87171"   # red
-    SG = "#2DD4BF"   # teal
+    PRIMARY = "#8B5A2B"  
+    SA = "#38BDF8"   
+    SB = "#34D399"   
+    SC = "#FB923C"   
+    SD = "#818CF8"   
+    SE = "#FBBF24"   
+    SF = "#F87171"   
+    SG = "#2DD4BF"   
 else:
     BG_COLOR = "#FFFAF4"       # warm cream / off-white untuk main layout
     SIDEBAR_BG = "#FAF4EC"     # light warm cream / cokelat muda
@@ -121,19 +132,19 @@ else:
     GRID_COLOR = "#F1F5F9"     # slate-100
     PLOT_TEXT = "#0F172A"      # Strong dark for graph text in light mode
     TPL = "plotly_white"
-    # Inputs
-    SIDEBAR_INPUT_BG = "#F4EAE0"  # Cokelat muda
+    # Inputs (Disamakan semua jadi warna kotak input)
+    SIDEBAR_INPUT_BG = "#F4EAE0" 
     SIDEBAR_INPUT_TEXT = "#2C241E"
     SIDEBAR_INPUT_BORDER = "#E5D7C9"
     # Palette
-    PRIMARY = "#5C4033"  # Cokelat tua untuk light mode
-    SA = "#1E293B"   # dark slate
-    SB = "#059669"   # emerald
-    SC = "#D97706"   # amber
-    SD = "#6366F1"   # indigo
-    SE = "#EAB308"   # yellow
-    SF = "#DC2626"   # red
-    SG = "#0EA5E9"   # light blue
+    PRIMARY = "#5C4033"  
+    SA = "#1E293B"   
+    SB = "#059669"   
+    SC = "#D97706"   
+    SD = "#6366F1"   
+    SE = "#EAB308"   
+    SF = "#DC2626"   
+    SG = "#0EA5E9"   
 
 # ============================================================
 # CUSTOM STYLES INJECTION
@@ -146,14 +157,6 @@ html, body, [class*="css"] {{ font-family: 'Plus Jakarta Sans', sans-serif; }}
 
 /* Background & Sidebar */
 .stApp {{ background: {BG_COLOR} !important; }}
-section[data-testid="stSidebar"] > div {{ 
-    background: {SIDEBAR_BG} !important; 
-    padding-top: 0rem !important;
-}}
-[data-testid="stSidebarUserContent"] {{ 
-    padding-top: 0rem !important; 
-}}
-.stSidebar {{ background: {SIDEBAR_BG} !important; border-right: 1px solid {BORDER_COLOR}; }}
 
 /* TIGHTEN MAIN CONTAINER */
 .block-container {{
@@ -164,9 +167,9 @@ section[data-testid="stSidebar"] > div {{
     max-width: 100% !important;
 }}
 [data-testid="stHorizontalBlock"] {{ gap: 0.8rem !important; }}
-header[data-testid="stHeader"] {{ display: none; }}
+header[data-testid="stHeader"] {{ background: transparent !important; }}
 
-/* Dashboard Cards (Targeting all main columns to wrap everything in a white box) */
+/* Dashboard Cards */
 section.main div[data-testid="column"] {{
     background-color: {CARD_BG} !important;
     border: 1px solid {BORDER_COLOR} !important;
@@ -206,92 +209,131 @@ section.main div[data-testid="column"] {{
 .ct  {{ font-size:0.75rem; font-weight:700; color: {TEXT_MAIN}; margin:0 0 0.1rem 0; letter-spacing:-.01em;}}
 
 /* Sidebar brand styling */
-.brand {{ font-size:2rem; font-weight:800; color: {TEXT_MAIN}; letter-spacing:-.02em; line-height:1.2; margin-top:-2rem; }}
-.brand-sub {{ font-size:0.9rem; color: {TEXT_MUTED}; font-weight: 500; margin-top:-2px; margin-bottom: 0.8rem; }}
+.brand {{ font-size:1.2rem; font-weight:800; color: {TEXT_MAIN}; letter-spacing:-.02em; line-height:1.2; margin-top:-2rem; }}
+.brand-sub {{ font-size:0.7rem; color: {TEXT_MUTED}; font-weight: 500; margin-top:-2px; margin-bottom: 0.8rem; }}
 
-section[data-testid="stSidebar"] .stSelectbox label, 
-section[data-testid="stSidebar"] .stDateInput label,
-section[data-testid="stSidebar"] div[data-testid="stMarkdownContainer"] {{
-    font-size: 0.75rem !important; font-weight: 600 !important; color: {TEXT_MUTED} !important;
-}}
-
-/* Custom styling for inputs to be light brown instead of default streamit colors */
-section[data-testid="stSidebar"] div[data-baseweb="select"] > div,
-section[data-testid="stSidebar"] div[data-baseweb="base-input"] > input,
-section[data-testid="stSidebar"] div[data-baseweb="base-input"] {{
+/* ==============================================================
+   MENGGABUNGKAN STYLING INPUT AGAR 100% SAMA (Select, Date, Popover)
+============================================================== */
+div[data-baseweb="select"] > div,
+div[data-baseweb="base-input"] > input,
+div[data-baseweb="base-input"] {{
     background-color: {SIDEBAR_INPUT_BG} !important;
     color: {SIDEBAR_INPUT_TEXT} !important;
-    border-color: {SIDEBAR_INPUT_BORDER} !important;
+    border: 1px solid {SIDEBAR_INPUT_BORDER} !important;
+    border-radius: 8px !important; /* Standar seragam */
+    min-height: 40px !important;
+    height: 40px !important;
+    box-sizing: border-box !important;
+    font-weight: 500 !important;
+    font-size: 14px !important;
+    box-shadow: none !important;
 }}
-section[data-testid="stSidebar"] div[data-baseweb="select"] span {{
+
+/* Warna Teks Internal Selectbox */
+div[data-baseweb="select"] span {{
     color: {SIDEBAR_INPUT_TEXT} !important;
 }}
 
-/* Streamlit widgets texts inside sidebar */
-div[data-testid="stSidebar"] .stCheckbox label,
-div[data-testid="stSidebar"] .stRadio label {{
+/* Vertikal Alignment Date Input */
+div[data-baseweb="base-input"] > input {{
+    line-height: 40px !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+}}
+
+/* Penyesuaian Layout Internal Popover Button */
+/* 1. Paksa tombol popover menjadi krem dengan selektor yang lebih spesifik */
+div[data-testid="stPopover"] > button {{
+    background-color: {SIDEBAR_INPUT_BG} !important;
+    color: {SIDEBAR_INPUT_TEXT} !important;
+    border: 1px solid {SIDEBAR_INPUT_BORDER} !important;
+    border-radius: 8px !important;
+    padding: 0 12px !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    width: 100% !important;
+    min-height: 40px !important;
+}}
+
+/* Menghilangkan border bawaan saat aktif/focus */
+div[data-testid="stPopover"] > button:focus {{
+    border-color: {PRIMARY} !important;
+    box-shadow: none !important;
+}}   
+
+/* 2. Mengubah Background Body Popover (Ini yang sering terlewat) */
+/* Kita targetkan elemen pembungkus di dalam popover */
+[data-testid="stPopoverBody"] {{
+    background-color: {SIDEBAR_INPUT_BG} !important; 
+    border: 1px solid {SIDEBAR_INPUT_BORDER} !important;
+    border-radius: 8px !important;
+    padding: 10px !important;
+}}
+
+/* 3. Menghilangkan sisa warna putih pada container internal popover */
+[data-testid="stPopoverBody"] > div {{
+    background-color: transparent !important;
+}}
+
+/* 4. Ikon Chevron */
+div[data-testid="stPopover"] > button::after {{
+    content: "▼";
+    font-size: 0.6rem;
+    color: {TEXT_MUTED};
+    margin-left: 10px;
+}}
+
+/* Streamlit widgets texts inside navbar */
+.stCheckbox label,
+.stRadio label {{
     color: {TEXT_MAIN} !important;
 }}
 
 /* ==============================================================
-   CHECKBOX - TIPE CABANG
+   CHECKBOX KUSTOM
 ============================================================== */
-/* 1. Target the visual box */
 div[data-testid="stCheckbox"] label > *:not(:has(div[data-testid="stMarkdownContainer"])):not(input) {{
-    border-radius: 50% !important;
+    border-radius: 4px !important; 
     background-color: {SIDEBAR_INPUT_BG} !important;
     border: 2px solid {SIDEBAR_INPUT_BORDER} !important;
     width: 1.25rem !important;
     height: 1.25rem !important;
-    margin-right: 0.5rem !important; /* Jarak antara bulatan dan teks */
+    margin-right: 0.5rem !important; 
     display: inline-block !important;
 }}
-
-/* 2. Checked state */
 div[data-testid="stCheckbox"] label:has(input:checked) > *:not(:has(div[data-testid="stMarkdownContainer"])):not(input) {{
     background-color: {PRIMARY} !important;
     border-color: {PRIMARY} !important;
 }}
-
-/* 3. Hide ALL inner elements */
 div[data-testid="stCheckbox"] label > *:not(:has(div[data-testid="stMarkdownContainer"])):not(input) > * {{
     display: none !important;
 }}
 
 /* ==============================================================
-   RADIO BUTTON - TEMA
+   RADIO BUTTON - TEMA (Bulat Penuh)
 ============================================================== */
-/* Target the actual radio circle, avoiding the 'TEMA' label and the text */
 div[data-testid="stRadio"] div[role="radiogroup"] label > *:not(:has(div[data-testid="stMarkdownContainer"])):not(input) {{
     background-color: {SIDEBAR_INPUT_BG} !important;
     border: 2px solid {SIDEBAR_INPUT_BORDER} !important;
     width: 1.25rem !important;
     height: 1.25rem !important;
-    margin-right: 0.5rem !important; /* Jarak antara bulatan dan teks */
-    border-radius: 50% !important; /* Pastikan selalu bulat */
+    margin-right: 0.5rem !important; 
+    border-radius: 50% !important; 
 }}
-
 div[data-testid="stRadio"] div[role="radiogroup"] label:has(input:checked) > *:not(:has(div[data-testid="stMarkdownContainer"])):not(input) {{
     background-color: {PRIMARY} !important;
     border-color: {PRIMARY} !important;
 }}
-
-/* Hide inner native dot inside the radio circle */
 div[data-testid="stRadio"] div[role="radiogroup"] label > *:not(:has(div[data-testid="stMarkdownContainer"])):not(input) > * {{
     display: none !important;
 }}
-
-/* Force vertical spacing between Light Mode and Dark Mode options */
 div[data-testid="stRadio"] div[role="radiogroup"] label {{
-    margin-bottom: 0.75rem !important;
+    margin-bottom: 0.5rem !important;
 }}
 div[data-testid="stRadio"] div[role="radiogroup"] label:last-child {{
     margin-bottom: 0 !important;
-}}
-
-/* Tighten gaps for checkboxes */
-div[data-testid="stSidebar"] div[data-testid="stCheckbox"] {{
-    margin-bottom: -0.4rem !important;
 }}
 
 /* Scrollbar */
@@ -302,26 +344,29 @@ div[data-testid="stSidebar"] div[data-testid="stCheckbox"] {{
 </style>
 """, unsafe_allow_html=True)
 
+# ============================================================
+# OPTIMASI 1: CUSTOM DIVIDER
+# Mengganti st.divider() untuk mengontrol padding menjadi rapat
+# ============================================================
+st.markdown(f'<hr style="margin-top: -0.5rem; margin-bottom: 1rem; border: none; border-top: 1px solid {BORDER_COLOR};">', unsafe_allow_html=True)
+
 
 # ============================================================
 # FILTER
 # ============================================================
-mask = (
-    (df["branch_province"] == selected_province)
-    & (df["date"] >= pd.Timestamp(start_date))
-    & (df["date"] <= pd.Timestamp(end_date))
-    & (df["branch_type"].isin(selected_types))
-)
-fdf = df[mask]
+start_ts = pd.Timestamp(start_date)
+end_ts = pd.Timestamp(end_date)
+
 ndf = df[
-    (df["date"] >= pd.Timestamp(start_date))
-    & (df["date"] <= pd.Timestamp(end_date))
+    (df["date"] >= start_ts)
+    & (df["date"] <= end_ts)
     & (df["branch_type"].isin(selected_types))
 ]
+fdf = ndf[ndf["branch_province"] == selected_province]
 n_cabang = fdf["branch_name"].nunique()
 
 if fdf.empty:
-    st.warning("Tidak ada data. Silakan ubah filter di sidebar.")
+    st.warning("Tidak ada data. Silakan ubah filter di sidebar atau centang tipe cabang.")
     st.stop()
 
 
@@ -360,7 +405,7 @@ st.markdown(f"""
 BG   = "rgba(0,0,0,0)"
 CFG  = {"displayModeBar": False}
 
-# 📉 TINGGI GRAFIK DIPERKECIL (dari 240 ke 210) agar pas 1 layar
+# 📉 TINGGI GRAFIK DIPERKECIL
 H_CHART = 210 
 
 def base(fig, h, lm=0, rm=0, is_cat_y=False):
@@ -417,7 +462,7 @@ with r1_col1:
         yaxis=dict(tickformat=",.0s")
     )
     base(fig1, h=H_CHART)
-    st.plotly_chart(fig1, use_container_width=True, config=CFG)
+    st.plotly_chart(fig1, width="stretch", config=CFG)
     box_end()
 
 with r1_col2:
@@ -432,7 +477,7 @@ with r1_col2:
         font=dict(color=PLOT_TEXT)
     )
     base(fig2, h=H_CHART, is_cat_y=True)
-    st.plotly_chart(fig2, use_container_width=True, config=CFG)
+    st.plotly_chart(fig2, width="stretch", config=CFG)
     box_end()
 
 with r1_col3:
@@ -449,7 +494,7 @@ with r1_col3:
     fig3.add_vline(x=nat_margin, line_dash="dash", line_color=SD)
     fig3.update_layout(xaxis=dict(tickformat=".0%"), font=dict(color=PLOT_TEXT))
     base(fig3, h=H_CHART, is_cat_y=True)
-    st.plotly_chart(fig3, use_container_width=True, config=CFG)
+    st.plotly_chart(fig3, width="stretch", config=CFG)
     box_end()
 
 # ============================================================
@@ -471,7 +516,7 @@ with r2_col1:
     fig4.add_vline(x=nat_ticket, line_dash="dash", line_color=SD)
     fig4.update_layout(font=dict(color=PLOT_TEXT))
     base(fig4, h=H_CHART, is_cat_y=True)
-    st.plotly_chart(fig4, use_container_width=True, config=CFG)
+    st.plotly_chart(fig4, width="stretch", config=CFG)
     box_end()
 
 with r2_col2:
@@ -484,7 +529,7 @@ with r2_col2:
     fig6.add_trace(go.Bar(name="Takeaway", y=ch["lbl"], x=ch["takeaway_percent"], orientation="h", marker_color=SB))
     fig6.update_layout(barmode="stack", showlegend=False, xaxis=dict(ticksuffix="%"), font=dict(color=PLOT_TEXT))
     base(fig6, h=H_CHART, is_cat_y=True)
-    st.plotly_chart(fig6, use_container_width=True, config=CFG)
+    st.plotly_chart(fig6, width="stretch", config=CFG)
     box_end()
 
 with r2_col3:
@@ -503,5 +548,5 @@ with r2_col3:
     fig7.add_trace(go.Bar(name="Wkend", y=wd_pivot["lbl"], x=wd_pivot["Weekend"], orientation="h", marker_color=SG))
     fig7.update_layout(barmode="group", showlegend=False, font=dict(color=PLOT_TEXT))
     base(fig7, h=H_CHART, is_cat_y=True)
-    st.plotly_chart(fig7, use_container_width=True, config=CFG)
+    st.plotly_chart(fig7, width="stretch", config=CFG)
     box_end()
