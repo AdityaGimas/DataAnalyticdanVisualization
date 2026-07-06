@@ -53,6 +53,25 @@ def load_data():
 
 df = load_data()
 
+# ── Helper: Format Rupiah Indonesia ─────────────────────────
+def fmt_idr(val):
+    """Format nilai Rupiah ke Rb/Jt/M/T secara otomatis."""
+    abs_val = abs(val)
+    if abs_val >= 1e12: return f"Rp {val/1e12:,.2f} T"
+    elif abs_val >= 1e9: return f"Rp {val/1e9:,.1f} M"
+    elif abs_val >= 1e6: return f"Rp {val/1e6:,.1f} Jt"
+    elif abs_val >= 1e3: return f"Rp {val/1e3:,.1f} Rb"
+    return f"Rp {val:,.0f}"
+
+def idr_scale(series):
+    """Skala terbaik (divisor, suffix IDR) untuk sumbu grafik."""
+    mx = series.abs().max()
+    if mx >= 1e12: return 1e12, " T"
+    elif mx >= 1e9: return 1e9, " M"
+    elif mx >= 1e6: return 1e6, " Jt"
+    elif mx >= 1e3: return 1e3, " Rb"
+    return 1, ""
+
 # ============================================================
 # TOP NAVBAR
 # ============================================================
@@ -464,13 +483,13 @@ st.markdown(f"""
   <div class="kpi-card">
     <div class="kpi-body">
       <div class="kpi-l">Total Revenue</div>
-      <div class="kpi-v">Rp {total_rev/1e6:,.1f}M</div>
+      <div class="kpi-v">{fmt_idr(total_rev)}</div>
     </div>
   </div>
   <div class="kpi-card">
     <div class="kpi-body">
       <div class="kpi-l">Total Profit</div>
-      <div class="kpi-v">Rp {total_prof/1e6:,.1f}M</div>
+      <div class="kpi-v">{fmt_idr(total_prof)}</div>
     </div>
   </div>
   <div class="kpi-card">
@@ -537,15 +556,17 @@ with r1_col1:
     tr = (fdf.set_index("date").resample("ME")
           .agg(rev=("total_revenue","sum"), cost=("operating_cost","sum"), prof=("profit","sum"))
           .reset_index())
+    sc1, sfx1 = idr_scale(tr[["rev","cost","prof"]].stack())
     fig1 = go.Figure()
-    fig1.add_trace(go.Scatter(x=tr["date"], y=tr["rev"], name="Rev", mode="lines", line=dict(color=SA, width=2)))
-    fig1.add_trace(go.Scatter(x=tr["date"], y=tr["cost"], name="Biaya", mode="lines", line=dict(color=SC, width=2, dash="dot")))
-    fig1.add_trace(go.Scatter(x=tr["date"], y=tr["prof"], name="Profit", mode="lines", line=dict(color=SB, width=2)))
+    fig1.add_trace(go.Scatter(x=tr["date"], y=tr["rev"]/sc1, name="Pendapatan", mode="lines", line=dict(color=SA, width=2)))
+    fig1.add_trace(go.Scatter(x=tr["date"], y=tr["cost"]/sc1, name="Biaya", mode="lines", line=dict(color=SC, width=2)))
+    fig1.add_trace(go.Scatter(x=tr["date"], y=tr["prof"]/sc1, name="Profit", mode="lines", line=dict(color=SB, width=2)))
     fig1.update_layout(
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0, font=dict(color=PLOT_TEXT)), 
-        yaxis=dict(tickformat=",.0s")
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0, font=dict(color=PLOT_TEXT)),
+        xaxis=dict(tickformat="%Y"),
+        yaxis=dict(title=dict(text=f"Nilai Rupiah ({sfx1.strip()})", font=dict(size=10)), tickformat=",.1f"),
     )
-    base(fig1, h=H_CHART)
+    base(fig1, h=H_CHART, lm=55)
     st.plotly_chart(fig1, width="stretch", config=CFG)
     box_end()
 
@@ -553,11 +574,13 @@ with r1_col2:
     box("Pendapatan dan Biaya per Cabang")
     cb = fdf.groupby("branch_name").agg(rev=("total_revenue","sum"), cost=("operating_cost","sum")).reset_index().sort_values("rev", ascending=True)
     cb["lbl"] = short(cb["branch_name"])
+    sc2, sfx2 = idr_scale(cb[["rev","cost"]].stack())
     fig2 = go.Figure()
-    fig2.add_trace(go.Bar(name="Rev", y=cb["lbl"], x=cb["rev"], orientation="h", marker_color=SA))
-    fig2.add_trace(go.Bar(name="Biaya", y=cb["lbl"], x=cb["cost"], orientation="h", marker_color=SC))
+    fig2.add_trace(go.Bar(name="Pendapatan", y=cb["lbl"], x=cb["rev"]/sc2, orientation="h", marker_color=SA))
+    fig2.add_trace(go.Bar(name="Biaya", y=cb["lbl"], x=cb["cost"]/sc2, orientation="h", marker_color=SC))
     fig2.update_layout(
-        barmode="group", showlegend=False, xaxis=dict(tickformat=",.0s"),
+        barmode="group", showlegend=False,
+        xaxis=dict(tickformat=",.1f", ticksuffix=sfx2),
         font=dict(color=PLOT_TEXT)
     )
     base(fig2, h=H_CHART, is_cat_y=True)
@@ -592,13 +615,14 @@ with r2_col1:
     tk = fdf.groupby("branch_name")["avg_ticket_size"].mean().reset_index().sort_values("avg_ticket_size", ascending=True)
     tk["lbl"] = short(tk["branch_name"])
     tkcol = [SA if v >= nat_ticket else SE for v in tk["avg_ticket_size"]]
+    sc4, sfx4 = idr_scale(tk["avg_ticket_size"])
     fig4 = go.Figure(go.Bar(
-        x=tk["avg_ticket_size"], y=tk["lbl"], orientation="h", marker_color=tkcol,
-        text=[f"Rp{v/1e3:.0f}k" for v in tk["avg_ticket_size"]],
+        x=tk["avg_ticket_size"]/sc4, y=tk["lbl"], orientation="h", marker_color=tkcol,
+        text=[fmt_idr(v) for v in tk["avg_ticket_size"]],
         textposition="outside", textfont=dict(size=10, color=PLOT_TEXT)
     ))
-    fig4.add_vline(x=nat_ticket, line_dash="dash", line_color=SD)
-    fig4.update_layout(font=dict(color=PLOT_TEXT))
+    fig4.add_vline(x=nat_ticket/sc4, line_dash="dash", line_color=SD)
+    fig4.update_layout(xaxis=dict(tickformat=",.1f", ticksuffix=sfx4), font=dict(color=PLOT_TEXT))
     base(fig4, h=H_CHART, is_cat_y=True)
     st.plotly_chart(fig4, width="stretch", config=CFG)
     box_end()
