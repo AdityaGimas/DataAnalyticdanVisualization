@@ -255,6 +255,7 @@ div[data-testid="stVerticalBlockBorderWrapper"] > div {{
     background: {GRADIENT_KPI};
     border: 1px solid {BORDER_COLOR};
     border-radius: 10px;
+    min-height: 50px;
     padding: 0.3rem 1rem 0.3rem 0.8rem;
     box-shadow: 0 1px 4px rgba(29, 78, 216, 0.12);
     transition: box-shadow 0.2s ease, border-color 0.2s ease;
@@ -277,7 +278,7 @@ div[data-testid="stVerticalBlockBorderWrapper"] > div {{
 .kpi-body {{ display: flex; flex-direction: column; gap: 0.1rem; }}
 .kpi-l {{ font-size:0.65rem; color: {TEXT_MUTED}; text-transform:uppercase; letter-spacing:.06em; font-weight:700; margin:0; }}
 .kpi-v {{
-    font-size:1.05rem; font-weight:800; line-height:1.2; margin:0;
+    font-size:0.85rem; font-weight:800; line-height:1.2; margin:0;
     background: {GRADIENT_BRAND};
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -634,34 +635,90 @@ st.markdown(f'<hr style="margin-top: -0.4rem; margin-bottom: 0.25rem; border: no
 
 
 # ============================================================
-# BARIS KPI + FILTER CABANG
-# Urutan kolom: [Judul Provinsi & Tanggal] [Filter Cabang] [Total
-# Revenue] [Total Profit] [Avg Profit Margin] — filter cabang
-# ditaruh persis di kiri KPI "Total Revenue", bukan di ujung kanan.
+# BARIS KPI
 # ============================================================
-kpi_col_title, kpi_col_filter, kpi_col_rev, kpi_col_prof, kpi_col_margin = st.columns(
-    [2.4, 0.6, 1.3, 1.3, 1.3]
+
+header_col, kpi_col_rev, kpi_col_prof, kpi_col_margin, kpi_col_best = st.columns(
+    [3.0, 1.2, 1.2, 1.2, 1.3]
 )
 
-# Tombol filter cabang dirender lebih dulu supaya nilai
-# `selected_branches` sudah tersedia sebelum menghitung fdf di bawah.
-# Filter ini berlaku GLOBAL untuk KPI dan semua grafik sekaligus.
-with kpi_col_filter:
-    branch_options = sorted(
-        df[
-            (df["branch_province"] == selected_province)
-            & (df["branch_type"].isin(selected_types))
-        ]["branch_name"].unique()
-    )
-    with st.popover("Cabang", key="kpi_cabang_filter"):
-        selected_branches = []
-        for b in branch_options:
-            if st.checkbox(short_label(b), value=True, key=f"navf_branch_{b}"):
-                selected_branches.append(b)
+# ============================================================
+# DATA FILTER CABANG
+# ============================================================
+
+branch_options = sorted(
+    df[
+        (df["branch_province"].str.lower() == selected_province.lower())
+        & (df["branch_type"].isin(selected_types))
+    ]["branch_name"].unique()
+)
+
+# simpan state filter
+if "selected_branches" not in st.session_state:
+    st.session_state.selected_branches = branch_options.copy()
+
+# jika daftar cabang berubah karena filter provinsi / tipe
+st.session_state.selected_branches = [
+    b for b in st.session_state.selected_branches
+    if b in branch_options
+]
+
+if not st.session_state.selected_branches:
+    st.session_state.selected_branches = branch_options.copy()
 
 # ============================================================
-# FILTER
+# HEADER
 # ============================================================
+
+with header_col:
+
+    left_title, right_filter = st.columns([4.3, 1])
+
+    with left_title:
+
+        # sementara tampilkan jumlah semua cabang dulu
+        n_cabang = len(st.session_state.selected_branches)
+
+        st.markdown(
+            f"""
+            <div class="kpi-title-box">
+                <div class="dash-title">
+                    {selected_province.title()} — {n_cabang} Cabang
+                </div>
+                <div class="dash-sub">
+                    {start_date.strftime('%d %b %y')} – {end_date.strftime('%d %b %y')}
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    with right_filter:
+
+        with st.popover("Cabang", key="kpi_cabang_filter"):
+
+            temp = []
+
+            for b in branch_options:
+
+                checked = st.checkbox(
+                    short_label(b),
+                    value=b in st.session_state.selected_branches,
+                    key=f"branch_filter_{b}"
+                )
+
+                if checked:
+                    temp.append(b)
+
+            if temp:
+                st.session_state.selected_branches = temp
+
+selected_branches = st.session_state.selected_branches
+
+# ============================================================
+# FILTER DATA
+# ============================================================
+
 start_ts = pd.Timestamp(start_date)
 end_ts = pd.Timestamp(end_date)
 
@@ -670,61 +727,87 @@ ndf = df[
     & (df["date"] <= end_ts)
     & (df["branch_type"].isin(selected_types))
 ]
+
 fdf = ndf[
-    (ndf["branch_province"] == selected_province)
+    (ndf["branch_province"].str.lower() == selected_province.lower())
     & (ndf["branch_name"].isin(selected_branches))
 ]
+
 n_cabang = fdf["branch_name"].nunique()
 
 if fdf.empty:
-    st.warning("Tidak ada data. Silakan ubah filter Provinsi, Tipe Cabang, Cabang, atau Rentang Tanggal.")
+    st.warning("Tidak ada data.")
     st.stop()
 
 # ============================================================
-# KPI CARDS (dirender per-kolom supaya tombol filter cabang bisa
-# berada tepat di antara judul dan kartu KPI pertama)
+# KPI
 # ============================================================
-total_rev  = fdf["total_revenue"].sum()
+
+total_rev = fdf["total_revenue"].sum()
 total_prof = fdf["profit"].sum()
 avg_margin = fdf["profit_margin"].mean()
 
-with kpi_col_title:
-    st.markdown(f"""
-<div class="kpi-title-box">
-    <div class="dash-title">{selected_province.title()} — {n_cabang} Cabang</div>
-    <div class="dash-sub">{start_date.strftime('%d %b %y')} – {end_date.strftime('%d %b %y')}</div>
-</div>
-""", unsafe_allow_html=True)
+
+# ============================================================
+# BRANCH TERLAKU
+# ============================================================
+
+branch_profit = (
+    fdf.groupby("branch_name", as_index=False)
+       .agg(total_profit=("profit", "sum"))
+       .sort_values("total_profit", ascending=False)
+)
+
+if not branch_profit.empty:
+    best_branch = short_label(branch_profit.iloc[0]["branch_name"])
+    best_profit = branch_profit.iloc[0]["total_profit"]
+else:
+    best_branch = "-"
+    best_profit = 0
+
+# ============================================================
+# UPDATE TITLE
+# ============================================================
 
 with kpi_col_rev:
     st.markdown(f"""
-<div class="kpi-card">
-  <div class="kpi-body">
-    <div class="kpi-l">Total Revenue</div>
-    <div class="kpi-v">{fmt_idr(total_rev)}</div>
-  </div>
-</div>
-""", unsafe_allow_html=True)
+    <div class="kpi-card">
+        <div class="kpi-body">
+            <div class="kpi-l">Total Revenue</div>
+            <div class="kpi-v">{fmt_idr(total_rev)}</div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
 with kpi_col_prof:
     st.markdown(f"""
-<div class="kpi-card">
-  <div class="kpi-body">
-    <div class="kpi-l">Total Profit</div>
-    <div class="kpi-v">{fmt_idr(total_prof)}</div>
-  </div>
-</div>
-""", unsafe_allow_html=True)
+    <div class="kpi-card">
+        <div class="kpi-body">
+            <div class="kpi-l">Total Profit</div>
+            <div class="kpi-v">{fmt_idr(total_prof)}</div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
 with kpi_col_margin:
     st.markdown(f"""
-<div class="kpi-card">
-  <div class="kpi-body">
-    <div class="kpi-l">Avg Profit Margin</div>
-    <div class="kpi-v">{avg_margin*100:.1f}%</div>
-  </div>
-</div>
-""", unsafe_allow_html=True)
+    <div class="kpi-card">
+        <div class="kpi-body">
+            <div class="kpi-l">Avg Profit Margin</div>
+            <div class="kpi-v">{avg_margin*100:.1f}%</div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+with kpi_col_best:
+    st.markdown(f"""
+    <div class="kpi-card">
+        <div class="kpi-body">
+            <div class="kpi-l">Branch Terlaku</div>
+            <div class="kpi-v">{best_branch}</div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
 
 # ============================================================
