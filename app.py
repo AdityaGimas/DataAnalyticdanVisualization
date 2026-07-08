@@ -1,11 +1,7 @@
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
-import random
 
-# ============================================================
-# CONFIG
-# ============================================================
 st.set_page_config(
     page_title="Kopiseru – Area Manager Dashboard",
     page_icon="☕",
@@ -15,47 +11,19 @@ st.set_page_config(
 
 DAY_NAMES = {0: "Sen", 1: "Sel", 2: "Rab", 3: "Kam", 4: "Jum", 5: "Sab", 6: "Min"}
 
-# ============================================================
-# DATA (Mocked for testing)
-# ============================================================
+# Muat data dari kopiseru.csv
 @st.cache_data
 def load_data():
-    try:
-        df = pd.read_csv("kopiseru.csv")
-    except:
-        dates = pd.date_range(start="2023-01-01", end="2023-01-31")
-        branches = ["Kopiseru Sudirman", "Kopiseru Kemang", "Kopiseru Menteng", "Kopiseru Senayan"]
-        data = []
-        for d in dates:
-            for b in branches:
-                rev = random.randint(5000000, 15000000)
-                cost = rev * random.uniform(0.5, 0.8)
-
-                # Menyesuaikan variasi tipe cabang sesuai referensi
-                if "Sudirman" in b: b_type = "Office Area"
-                elif "Senayan" in b: b_type = "Mall"
-                elif "Kemang" in b: b_type = "Standalone"
-                else: b_type = "University"
-
-                data.append({
-                    "date": d, "branch_name": b, "branch_province": "dki jakarta", "branch_type": b_type,
-                    "day_of_week": d.weekday(), "total_revenue": rev, "operating_cost": cost,
-                    "profit": rev - cost, "profit_margin": (rev-cost)/rev, "total_transactions": random.randint(100, 300),
-                    "avg_ticket_size": random.randint(30000, 60000), "transactions_per_employee": random.uniform(10, 30),
-                    "dine_in_percent": random.uniform(20, 50), "delivery_percent": random.uniform(20, 50),
-                    "takeaway_percent": random.uniform(10, 30), "is_weekend": d.weekday() >= 5
-                })
-        df = pd.DataFrame(data)
-
+    df = pd.read_csv("kopiseru.csv")
     df["date"] = pd.to_datetime(df["date"])
     df["day_name"] = df["day_of_week"].map(DAY_NAMES)
     return df
 
 df = load_data()
 
-# ── Helper: Format Rupiah Indonesia ─────────────────────────
+
+# Format Rupiah Indonesia
 def fmt_idr(val):
-    """Format nilai Rupiah ke Rb/Jt/M/T secara otomatis."""
     abs_val = abs(val)
     if abs_val >= 1e12: return f"Rp {val/1e12:,.2f} T"
     elif abs_val >= 1e9: return f"Rp {val/1e9:,.1f} M"
@@ -64,7 +32,6 @@ def fmt_idr(val):
     return f"Rp {val:,.0f}"
 
 def idr_scale(series):
-    """Skala terbaik (divisor, suffix IDR) untuk sumbu grafik."""
     mx = series.abs().max()
     if mx >= 1e12: return 1e12, " T"
     elif mx >= 1e9: return 1e9, " M"
@@ -76,12 +43,9 @@ def short(series):
     return series.str.title().str.replace("Kopiseru ", "", regex=False)
 
 def short_label(name: str) -> str:
-    """Versi single-string dari `short()`, dipakai untuk label checkbox filter cabang."""
     return name.title().replace("Kopiseru ", "")
 
-# ============================================================
-# TOP NAVBAR
-# ============================================================
+# Navbar
 st.markdown("<style>#MainMenu {visibility: hidden;} footer {visibility: hidden;} header {visibility: hidden;}</style>", unsafe_allow_html=True)
 
 nav_col1, nav_col2, nav_col3, nav_col4, nav_col5 = st.columns([0.9, 0.8, 1.1, 1.0, 1.3])
@@ -111,14 +75,9 @@ with nav_col3:
 with nav_col4:
     branch_types = sorted(df["branch_type"].unique())
 
-    # MENGGUNAKAN POPOVER & CHECKBOX SEBAGAI GANTI MULTISELECT
-    # key="navbar_tipe_cabang" dipakai sebagai hook CSS agar tampilannya
-    # konsisten dengan input navbar lain (selectbox, date input), terpisah
-    # dari gaya popover kecil "☰" yang dipakai di tiap grafik.
     with st.popover("Tipe Cabang", use_container_width=True, key="navbar_tipe_cabang"):
         selected_types = []
         for bt in branch_types:
-            # Gunakan st.checkbox agar user memilih langsung dari list
             if st.checkbox(bt, value=True, key=f"filter_{bt}"):
                 selected_types.append(bt)
 
@@ -127,9 +86,6 @@ with nav_col5:
     is_dark = (theme_mode == "Dark Mode")
 
 
-# ============================================================
-# DESIGN SYSTEM (THEMING VARIABLES) — TEMA BIRU + GRADASI
-# ============================================================
 if is_dark:
     BG_COLOR = "#0B1220"       # navy hampir hitam
     SIDEBAR_BG = "#0F1B33"     # navy gelap
@@ -144,7 +100,6 @@ if is_dark:
     SIDEBAR_INPUT_BG = "#122038"
     SIDEBAR_INPUT_TEXT = "#EAF2FF"
     SIDEBAR_INPUT_BORDER = "#1E3A5F"
-    # Palette — dasar biru, tapi tiap kategori punya warna sendiri biar tidak "biru semua"
     PRIMARY = "#3B82F6"
     SA = "#60A5FA"   # biru - Pendapatan
     SB = "#34D399"   # hijau - Profit / margin di atas rata-rata (dibiarkan hijau)
@@ -169,11 +124,9 @@ else:
     GRID_COLOR = "#F1F5F9"     # grid abu-abu sangat muda
     PLOT_TEXT = "#0F1E3D"
     TPL = "plotly_white"
-    # Inputs
     SIDEBAR_INPUT_BG = "#F1F5F9"
     SIDEBAR_INPUT_TEXT = "#1E3A8A"
     SIDEBAR_INPUT_BORDER = "#E2E8F0"
-    # Palette — dasar biru, tapi tiap kategori punya warna sendiri biar tidak "biru semua"
     PRIMARY = "#1D4ED8"
     SA = "#1E3A8A"   # biru tua - Pendapatan
     SB = "#059669"   # hijau - Profit / margin di atas rata-rata (dibiarkan hijau)
@@ -182,16 +135,12 @@ else:
     SE = "#94A3B8"   # abu-abu muda - kategori sekunder
     SF = "#DC2626"   # merah - margin di bawah rata-rata (dibiarkan merah)
     SG = "#0EA5E9"   # cyan - aksen
-    # Gradasi (background utama dibuat putih bersih, gradasi hanya di elemen aksen)
     GRADIENT_BG = "#FFFFFF"
     GRADIENT_KPI = "linear-gradient(135deg, #FFFFFF 0%, #F1F5F9 100%)"
     GRADIENT_BRAND = "linear-gradient(90deg, #1D4ED8 0%, #0EA5E9 100%)"
     GRADIENT_ACCENT = "linear-gradient(135deg, #1D4ED8 0%, #38BDF8 100%)"
     GRADIENT_INPUT = "linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%)"
 
-# ============================================================
-# CUSTOM STYLES INJECTION
-# ============================================================
 st.markdown(f"""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
@@ -503,12 +452,6 @@ div[data-testid="stPopover"] button:focus {{
     max-height: 320px !important;
     overflow-y: auto !important;
 }}
-
-/* ==============================================================
-   TOMBOL FILTER CABANG DI SAMPING KPI STRIP — dibuat kecil (bukan
-   full-width seperti input navbar) supaya tidak memakan tempat.
-   Filter ini tetap berlaku global untuk semua grafik & KPI.
-============================================================== */
 .st-key-kpi_cabang_filter {{
     display: flex !important;
     align-items: center !important;
@@ -641,23 +584,11 @@ div[data-testid="stRadio"] div[role="radiogroup"] label p {{
 </style>
 """, unsafe_allow_html=True)
 
-# ============================================================
-# CUSTOM DIVIDER
-# ============================================================
 st.markdown(f'<hr style="margin-top: -0.4rem; margin-bottom: 0.25rem; border: none; border-top: 1px solid {BORDER_COLOR};">', unsafe_allow_html=True)
-
-
-# ============================================================
-# BARIS KPI
-# ============================================================
 
 header_col, kpi_col_rev, kpi_col_prof, kpi_col_margin, kpi_col_best = st.columns(
     [3.0, 1.2, 1.2, 1.2, 1.3]
 )
-
-# ============================================================
-# DATA FILTER CABANG
-# ============================================================
 
 branch_options = sorted(
     df[
@@ -666,11 +597,9 @@ branch_options = sorted(
     ]["branch_name"].unique()
 )
 
-# simpan state filter
 if "selected_branches" not in st.session_state:
     st.session_state.selected_branches = branch_options.copy()
 
-# jika daftar cabang berubah karena filter provinsi / tipe
 st.session_state.selected_branches = [
     b for b in st.session_state.selected_branches
     if b in branch_options
@@ -679,17 +608,11 @@ st.session_state.selected_branches = [
 if not st.session_state.selected_branches:
     st.session_state.selected_branches = branch_options.copy()
 
-# ============================================================
-# HEADER
-# ============================================================
-
 with header_col:
 
     left_title, right_filter = st.columns([4.3, 1])
 
     with left_title:
-
-        # sementara tampilkan jumlah semua cabang dulu
         n_cabang = len(st.session_state.selected_branches)
 
         st.markdown(
@@ -728,10 +651,6 @@ with header_col:
 
 selected_branches = st.session_state.selected_branches
 
-# ============================================================
-# FILTER DATA
-# ============================================================
-
 start_ts = pd.Timestamp(start_date)
 end_ts = pd.Timestamp(end_date)
 
@@ -752,18 +671,9 @@ if fdf.empty:
     st.warning("Tidak ada data.")
     st.stop()
 
-# ============================================================
-# KPI
-# ============================================================
-
 total_rev = fdf["total_revenue"].sum()
 total_prof = fdf["profit"].sum()
 avg_margin = fdf["profit_margin"].mean()
-
-
-# ============================================================
-# BRANCH TERLAKU
-# ============================================================
 
 branch_profit = (
     fdf.groupby("branch_name", as_index=False)
@@ -777,10 +687,6 @@ if not branch_profit.empty:
 else:
     best_branch = "-"
     best_profit = 0
-
-# ============================================================
-# UPDATE TITLE
-# ============================================================
 
 with kpi_col_rev:
     st.markdown(f"""
@@ -822,10 +728,6 @@ with kpi_col_best:
     </div>
     """, unsafe_allow_html=True)
 
-
-# ============================================================
-# SHARED HELPERS & COLOR PALETTE
-# ============================================================
 BG   = "rgba(0,0,0,0)"
 CFG  = {"displayModeBar": False}
 H_CHART = 215
@@ -855,9 +757,6 @@ def base(fig, h, lm=0, rm=0, bm=0, is_cat_y=False):
     fig.update_layout(legend=dict(valign="middle"))
     return fig
 
-# ============================================================
-# ROW 1: 3 Column Grid
-# ============================================================
 r1_col1, r1_col2, r1_col3 = st.columns(3)
 
 with r1_col1:
@@ -869,7 +768,6 @@ with r1_col1:
               .reset_index())
         sc1, sfx1 = idr_scale(tr[["rev","cost","prof"]].stack())
         fig1 = go.Figure()
-        # Area gradasi untuk Pendapatan (fill di bawah garis)
         fig1.add_trace(go.Scatter(
             x=tr["date"], y=tr["rev"]/sc1, name="Pendapatan", mode="lines",
             line=dict(color=SA, width=2.5),
@@ -957,7 +855,6 @@ with r1_col3:
 
         mg["lbl"] = short(mg["branch_name"])
 
-        # Pisahkan menjadi dua trace agar muncul legenda
         mg_green = mg.copy()
         mg_green["value"] = mg_green["profit_margin"].where(
             mg_green["profit_margin"] >= nat_margin
@@ -970,7 +867,6 @@ with r1_col3:
 
         fig3 = go.Figure()
 
-        # Bar merah (Di Bawah Rata-rata) — nilai dalam %
         fig3.add_trace(
             go.Bar(
                 x=mg_red["value"] * 100,
@@ -981,7 +877,6 @@ with r1_col3:
             )
         )
 
-        # Bar hijau (Di Atas Rata-rata) — nilai dalam %
         fig3.add_trace(
             go.Bar(
                 x=mg_green["value"] * 100,
@@ -992,7 +887,6 @@ with r1_col3:
             )
         )
 
-        # Garis Average
         fig3.add_vline(
             x=nat_margin * 100,
             line_dash="dash",
@@ -1051,9 +945,6 @@ with r1_col3:
 
         st.plotly_chart(fig3, width="stretch", config=CFG)
 
-# ============================================================
-# ROW 2: 3 Column Grid
-# ============================================================
 r2_col1, r2_col2, r2_col3 = st.columns(3)
 
 with r2_col1:
@@ -1155,9 +1046,6 @@ with r2_col3:
             unsafe_allow_html=True
         )
 
-        # ============================
-        # Data
-        # ============================
         chart_df = fdf
         wd = (
             chart_df
