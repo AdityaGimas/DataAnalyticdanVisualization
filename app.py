@@ -11,7 +11,6 @@ st.set_page_config(
 
 DAY_NAMES = {0: "Sen", 1: "Sel", 2: "Rab", 3: "Kam", 4: "Jum", 5: "Sab", 6: "Min"}
 
-# Muat data dari kopiseru.csv
 @st.cache_data
 def load_data():
     df = pd.read_csv("kopiseru.csv")
@@ -20,7 +19,6 @@ def load_data():
     return df
 
 df = load_data()
-
 
 # Format Rupiah Indonesia
 def fmt_idr(val):
