@@ -773,7 +773,7 @@ with kpi_col_rev:
     st.markdown(f"""
     <div class="kpi-card">
         <div class="kpi-body">
-            <div class="kpi-l">Total Revenue</div>
+            <div class="kpi-l">Total Pendapatan</div>
             <div class="kpi-v">{fmt_idr(total_rev)}</div>
         </div>
     </div>
@@ -783,7 +783,7 @@ with kpi_col_prof:
     st.markdown(f"""
     <div class="kpi-card">
         <div class="kpi-body">
-            <div class="kpi-l">Total Profit</div>
+            <div class="kpi-l">Total Laba</div>
             <div class="kpi-v">{fmt_idr(total_prof)}</div>
         </div>
     </div>
@@ -793,7 +793,7 @@ with kpi_col_margin:
     st.markdown(f"""
     <div class="kpi-card">
         <div class="kpi-body">
-            <div class="kpi-l">Avg Profit Margin</div>
+            <div class="kpi-l">Rata-rata Margin Laba</div>
             <div class="kpi-v">{avg_margin*100:.1f}%</div>
         </div>
     </div>
@@ -803,7 +803,7 @@ with kpi_col_best:
     st.markdown(f"""
     <div class="kpi-card">
         <div class="kpi-body">
-            <div class="kpi-l">Branch Terlaku</div>
+            <div class="kpi-l">Cabang Terlaris</div>
             <div class="kpi-v">{best_branch}</div>
         </div>
     </div>
@@ -963,7 +963,7 @@ with r1_col3:
                 y=mg_red["lbl"],
                 orientation="h",
                 marker_color=SF,
-                name="Below Average",
+                name="Di Bawah Rata-rata",
             )
         )
 
@@ -974,7 +974,7 @@ with r1_col3:
                 y=mg_green["lbl"],
                 orientation="h",
                 marker_color=SB,
-                name="Above Average",
+                name="Di Atas Rata-rata",
             )
         )
 
@@ -990,7 +990,7 @@ with r1_col3:
             x=nat_margin,
             y=-0.08,
             yref="paper",
-            text=f"Average Margin ({nat_margin*100:.1f}%)",
+            text=f"Rata-rata Margin ({nat_margin*100:.1f}%)",
             showarrow=False,
             xanchor="left",
             yanchor="top",
@@ -1083,7 +1083,7 @@ with r2_col1:
                 x=nat_ticket/sc4,
                 y=-0.10,
                 yref="paper",
-                text=f"Average Transaction ({fmt_idr(nat_ticket)})",
+                text=f"Rata-rata Transaksi ({fmt_idr(nat_ticket)})",
                 showarrow=False,
                 xanchor="left",
                 yanchor="top",
@@ -1172,8 +1172,8 @@ with r2_col3:
             wd_pivot
             .reset_index()
             .rename(columns={
-                False: "Weekday",
-                True: "Weekend"
+                False: "Hari Kerja",
+                True: "Akhir Pekan"
             })
         )
         wd_pivot["lbl"] = short(wd_pivot["branch_name"])
@@ -1181,12 +1181,12 @@ with r2_col3:
         # PIE CHART
         # ============================
         if len(wd_pivot) == 1:
-            weekend = wd_pivot.iloc[0]["Weekend"]
-            weekday = wd_pivot.iloc[0]["Weekday"]
+            weekend = wd_pivot.iloc[0]["Akhir Pekan"]
+            weekday = wd_pivot.iloc[0]["Hari Kerja"]
             fig7 = go.Figure(
                 data=[
                     go.Pie(
-                        labels=["Weekday", "Weekend"],
+                        labels=["Hari Kerja", "Akhir Pekan"],
                         values=[weekday, weekend],
 
                         hole=0.62,
@@ -1244,8 +1244,8 @@ with r2_col3:
             base(fig7, h=H_CHART)
         else:
             wd_pivot["diff"] = (
-                wd_pivot["Weekend"] -
-                wd_pivot["Weekday"]
+                wd_pivot["Akhir Pekan"] -
+                wd_pivot["Hari Kerja"]
             )
             wd_pivot = wd_pivot.sort_values(
                 "diff",
@@ -1256,9 +1256,9 @@ with r2_col3:
 
             fig7.add_trace(
                 go.Bar(
-                    name="Weekday",
+                    name="Hari Kerja",
                     y=wd_pivot["lbl"],
-                    x=wd_pivot["Weekday"],
+                    x=wd_pivot["Hari Kerja"],
                     orientation="h",
                     marker_color=TEXT_MAIN,
                 )
@@ -1266,9 +1266,9 @@ with r2_col3:
 
             fig7.add_trace(
                 go.Bar(
-                    name="Weekend",
+                    name="Akhir Pekan",
                     y=wd_pivot["lbl"],
-                    x=wd_pivot["Weekend"],
+                    x=wd_pivot["Akhir Pekan"],
                     orientation="h",
                     marker_color=TEXT_MUTED,
                 )
