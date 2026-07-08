@@ -310,7 +310,20 @@ div[data-testid="stVerticalBlockBorderWrapper"] > div {{
     padding: 0 !important;
     margin-bottom: 0.2rem;
 }}
-.ct  {{ font-size:0.75rem; font-weight:700; color: {TEXT_MAIN}; margin:0 0 0.1rem 0; letter-spacing:-.01em;}}
+.ct  {{
+    display: block;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: {TEXT_MAIN};
+    letter-spacing: -.01em;
+    background: {GRADIENT_KPI};
+    border: 1px solid {BORDER_COLOR};
+    border-left: 3px solid {PRIMARY};
+    border-radius: 5px;
+    padding: 2px 8px 2px 7px;
+    margin: 0 0 0.15rem 0;
+    line-height: 1.6;
+}}
 
 /* Navbar brand styling */
 .brand {{ font-size:1.4rem; font-weight:800; color: {PRIMARY}; letter-spacing:-.02em; line-height:1.1; margin:0; padding:0; }}
@@ -839,6 +852,7 @@ def base(fig, h, lm=0, rm=0, bm=0, is_cat_y=False):
             gridcolor=GRID_COLOR, linecolor=BORDER_COLOR, zeroline=False,
             tickfont=dict(color=PLOT_TEXT, size=9), title_font=dict(color=PLOT_TEXT, size=9)
         )
+    fig.update_layout(legend=dict(valign="middle"))
     return fig
 
 # ============================================================
@@ -956,10 +970,10 @@ with r1_col3:
 
         fig3 = go.Figure()
 
-        # Bar merah (Below Average)
+        # Bar merah (Di Bawah Rata-rata) — nilai dalam %
         fig3.add_trace(
             go.Bar(
-                x=mg_red["value"],
+                x=mg_red["value"] * 100,
                 y=mg_red["lbl"],
                 orientation="h",
                 marker_color=SF,
@@ -967,10 +981,10 @@ with r1_col3:
             )
         )
 
-        # Bar hijau (Above Average)
+        # Bar hijau (Di Atas Rata-rata) — nilai dalam %
         fig3.add_trace(
             go.Bar(
-                x=mg_green["value"],
+                x=mg_green["value"] * 100,
                 y=mg_green["lbl"],
                 orientation="h",
                 marker_color=SB,
@@ -980,40 +994,35 @@ with r1_col3:
 
         # Garis Average
         fig3.add_vline(
-            x=nat_margin,
+            x=nat_margin * 100,
             line_dash="dash",
             line_color=SD,
             line_width=2,
         )
 
         fig3.add_annotation(
-            x=nat_margin,
-            y=-0.08,
+            xref="paper",
             yref="paper",
-            text=f"Rata-rata Margin ({nat_margin*100:.1f}%)",
+            x=1.0,
+            y=-0.22,
+            text=f"— Rata-rata Margin Nasional: {nat_margin*100:.1f}%",
             showarrow=False,
-            xanchor="left",
+            xanchor="right",
             yanchor="top",
-            font=dict(size=10, color=SD),
+            font=dict(size=8.5, color=SD),
         )
 
-        mg_min = mg["profit_margin"].min()
-        mg_max = mg["profit_margin"].max()
+        mg_min = mg["profit_margin"].min() * 100
+        mg_max = mg["profit_margin"].max() * 100
 
         if len(mg) == 1:
-            # Dengan hanya 1 cabang, mg_min == mg_max, sehingga rumus "zoom"
-            # di bawah (x_min*1.35 s.d. x_max*1.45) akan menghasilkan rentang
-            # yang meleset dari nilai batangnya sendiri -> batang jadi tidak
-            # terlihat sama sekali. Di sini rentang dihitung dari nilai
-            # cabang tsb + garis rata-rata nasional, supaya keduanya selalu
-            # terlihat.
-            lo = min(mg_min, nat_margin, 0)
-            hi = max(mg_max, nat_margin, 0)
+            lo = min(mg_min, nat_margin * 100, 0)
+            hi = max(mg_max, nat_margin * 100, 0)
             span = hi - lo
-            pad = span * 0.4 if span > 0 else max(abs(hi), 0.02) * 0.4
+            pad = span * 0.4 if span > 0 else max(abs(hi), 2) * 0.4
             x_range = [lo - pad * 0.5, hi + pad]
         else:
-            x_range = [mg_min * 1.35, mg_max * 1.45]
+            x_range = [mg_min * 0.7, mg_max * 1.25]
 
         fig3.update_layout(
             barmode="overlay",
@@ -1026,7 +1035,9 @@ with r1_col3:
                 font=dict(size=9, color=PLOT_TEXT),
             ),
             xaxis=dict(
-                showticklabels=False,
+                showticklabels=True,
+                ticksuffix="%",
+                tickfont=dict(size=8, color=PLOT_TEXT),
                 showgrid=True,
                 zeroline=True,
                 automargin=True,
@@ -1036,7 +1047,7 @@ with r1_col3:
         )
 
         base(fig3, h=H_CHART, is_cat_y=True, lm=80, rm=45)
-        fig3.update_layout(margin=dict(b=32))
+        fig3.update_layout(margin=dict(b=52))
 
         st.plotly_chart(fig3, width="stretch", config=CFG)
 
@@ -1080,20 +1091,18 @@ with r2_col1:
             ))
             fig4.add_vline(x=nat_ticket/sc4, line_dash="dash", line_color=SD)
             fig4.add_annotation(
-                x=nat_ticket/sc4,
-                y=-0.10,
+                xref="paper",
                 yref="paper",
-                text=f"Rata-rata Transaksi ({fmt_idr(nat_ticket)})",
+                x=1.0,
+                y=-0.22,
+                text=f"— Rata-rata Transaksi Nasional: {fmt_idr(nat_ticket)}",
                 showarrow=False,
-                xanchor="left",
+                xanchor="right",
                 yanchor="top",
-                font=dict(
-                    size=10,
-                    color=SD
-                ),
+                font=dict(size=8.5, color=SD),
             )
             base(fig4, h=H_CHART, is_cat_y=True)
-            fig4.update_layout(margin=dict(b=32))
+            fig4.update_layout(margin=dict(b=52))
 
         st.plotly_chart(fig4, width="stretch", config=CFG)
 
@@ -1142,7 +1151,7 @@ with r2_col2:
 with r2_col3:
     with st.container():
         st.markdown(
-            '<div class="chart-title">Transaksi Weekend dan Weekday</div>',
+            '<div class="ct">Transaksi Hari Kerja dan Akhir Pekan</div>',
             unsafe_allow_html=True
         )
 
