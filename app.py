@@ -30,23 +30,23 @@ def load_data():
             for b in branches:
                 rev = random.randint(5000000, 15000000)
                 cost = rev * random.uniform(0.5, 0.8)
-                
+
                 # Menyesuaikan variasi tipe cabang sesuai referensi
                 if "Sudirman" in b: b_type = "Office Area"
                 elif "Senayan" in b: b_type = "Mall"
                 elif "Kemang" in b: b_type = "Standalone"
                 else: b_type = "University"
-                
+
                 data.append({
                     "date": d, "branch_name": b, "branch_province": "dki jakarta", "branch_type": b_type,
-                    "day_of_week": d.weekday(), "total_revenue": rev, "operating_cost": cost, 
+                    "day_of_week": d.weekday(), "total_revenue": rev, "operating_cost": cost,
                     "profit": rev - cost, "profit_margin": (rev-cost)/rev, "total_transactions": random.randint(100, 300),
                     "avg_ticket_size": random.randint(30000, 60000), "transactions_per_employee": random.uniform(10, 30),
                     "dine_in_percent": random.uniform(20, 50), "delivery_percent": random.uniform(20, 50),
                     "takeaway_percent": random.uniform(10, 30), "is_weekend": d.weekday() >= 5
                 })
         df = pd.DataFrame(data)
-        
+
     df["date"] = pd.to_datetime(df["date"])
     df["day_name"] = df["day_of_week"].map(DAY_NAMES)
     return df
@@ -72,6 +72,13 @@ def idr_scale(series):
     elif mx >= 1e3: return 1e3, " Rb"
     return 1, ""
 
+def short(series):
+    return series.str.title().str.replace("Kopiseru ", "", regex=False)
+
+def short_label(name: str) -> str:
+    """Versi single-string dari `short()`, dipakai untuk label checkbox filter cabang."""
+    return name.title().replace("Kopiseru ", "")
+
 # ============================================================
 # TOP NAVBAR
 # ============================================================
@@ -82,7 +89,7 @@ nav_col1, nav_col2, nav_col3, nav_col4, nav_col5 = st.columns([0.9, 0.8, 1.1, 1.
 with nav_col1:
     st.markdown("<div class='brand-container'>"
                 "<div class='brand'>☕ Kopiseru</div>"
-                "<div class='brand-sub'>Dashboard Analytics</div>"
+                "<div class='brand-sub'>Area Manager Dashboard</div>"
                 "</div>",
                 unsafe_allow_html=True)
 
@@ -103,9 +110,12 @@ with nav_col3:
 
 with nav_col4:
     branch_types = sorted(df["branch_type"].unique())
-    
+
     # MENGGUNAKAN POPOVER & CHECKBOX SEBAGAI GANTI MULTISELECT
-    with st.popover("Tipe Cabang", use_container_width=True):
+    # key="navbar_tipe_cabang" dipakai sebagai hook CSS agar tampilannya
+    # konsisten dengan input navbar lain (selectbox, date input), terpisah
+    # dari gaya popover kecil "☰" yang dipakai di tiap grafik.
+    with st.popover("Tipe Cabang", use_container_width=True, key="navbar_tipe_cabang"):
         selected_types = []
         for bt in branch_types:
             # Gunakan st.checkbox agar user memilih langsung dari list
@@ -115,57 +125,69 @@ with nav_col4:
 with nav_col5:
     theme_mode = st.radio("🎨 TEMA", ["Light Mode", "Dark Mode"], index=0, horizontal=True, label_visibility="collapsed")
     is_dark = (theme_mode == "Dark Mode")
-    
+
 
 # ============================================================
-# DESIGN SYSTEM (THEMING VARIABLES)
+# DESIGN SYSTEM (THEMING VARIABLES) — TEMA BIRU + GRADASI
 # ============================================================
 if is_dark:
-    BG_COLOR = "#0F172A"       # slate-900
-    SIDEBAR_BG = "#2C241E"     # dark espresso/mocha for dark mode sidebar
-    CARD_BG = "#1E293B"        # slate-800
-    BORDER_COLOR = "#334155"   # slate-700
-    TEXT_MAIN = "#F8FAFC"      # slate-50
-    TEXT_MUTED = "#94A3B8"     # slate-400
-    GRID_COLOR = "#334155"     # slate-700
-    PLOT_TEXT = "#F8FAFC"      # Strong white for graph text in dark mode
+    BG_COLOR = "#0B1220"       # navy hampir hitam
+    SIDEBAR_BG = "#0F1B33"     # navy gelap
+    CARD_BG = "#122038"        # biru gelap untuk kartu
+    BORDER_COLOR = "#1E3A5F"   # biru kebiruan gelap
+    TEXT_MAIN = "#EAF2FF"      # putih kebiruan
+    TEXT_MUTED = "#8FB3E0"     # biru muda pudar
+    GRID_COLOR = "#1B3350"     # biru grid gelap
+    PLOT_TEXT = "#EAF2FF"
     TPL = "plotly_dark"
-    # Inputs (Disamakan semua jadi warna kotak input)
-    SIDEBAR_INPUT_BG = "#1E293B"       # match CARD_BG (slate-800)
-    SIDEBAR_INPUT_TEXT = "#F8FAFC"     # TEXT_MAIN
-    SIDEBAR_INPUT_BORDER = "#334155"   # BORDER_COLOR (slate-700)
-    # Palette
-    PRIMARY = "#8B5A2B"  
-    SA = "#38BDF8"   
-    SB = "#34D399"   
-    SC = "#FBBF24"   
-    SD = "#818CF8"   
-    SE = "#FDE047"   
-    SF = "#F87171"   
-    SG = "#38BDF8"   
+    # Inputs
+    SIDEBAR_INPUT_BG = "#122038"
+    SIDEBAR_INPUT_TEXT = "#EAF2FF"
+    SIDEBAR_INPUT_BORDER = "#1E3A5F"
+    # Palette — dasar biru, tapi tiap kategori punya warna sendiri biar tidak "biru semua"
+    PRIMARY = "#3B82F6"
+    SA = "#60A5FA"   # biru - Pendapatan
+    SB = "#34D399"   # hijau - Profit / margin di atas rata-rata (dibiarkan hijau)
+    SC = "#94A3B8"   # abu-abu - Biaya / Operasional
+    SD = "#818CF8"   # indigo - garis rata-rata (aksen pembeda)
+    SE = "#CBD5E1"   # abu-abu muda - kategori sekunder
+    SF = "#F87171"   # merah - margin di bawah rata-rata (dibiarkan merah)
+    SG = "#22D3EE"   # cyan - aksen
+    # Gradasi
+    GRADIENT_BG = "linear-gradient(180deg, #0B1220 0%, #0F1B33 55%, #0B1220 100%)"
+    GRADIENT_KPI = "linear-gradient(135deg, #16294A 0%, #0F1B33 100%)"
+    GRADIENT_BRAND = "linear-gradient(90deg, #60A5FA 0%, #22D3EE 100%)"
+    GRADIENT_ACCENT = "linear-gradient(135deg, #3B82F6 0%, #22D3EE 100%)"
+    GRADIENT_INPUT = "linear-gradient(135deg, #16294A 0%, #122038 100%)"
 else:
-    BG_COLOR = "#FFFAF4"       # warm cream / off-white untuk main layout
-    SIDEBAR_BG = "#FAF4EC"     # light warm cream / cokelat muda
-    CARD_BG = "#FFFFFF"        # Kotak putih untuk grafik
-    BORDER_COLOR = "#E2E8F0"   # slate-200
-    TEXT_MAIN = "#0F172A"      # slate-900
-    TEXT_MUTED = "#64748B"     # slate-500
-    GRID_COLOR = "#F1F5F9"     # slate-100
-    PLOT_TEXT = "#0F172A"      # Strong dark for graph text in light mode
+    BG_COLOR = "#FFFFFF"       # putih bersih
+    SIDEBAR_BG = "#F8FAFC"     # putih keabuan sangat tipis
+    CARD_BG = "#FFFFFF"        # putih untuk kartu
+    BORDER_COLOR = "#E2E8F0"   # abu-abu muda border
+    TEXT_MAIN = "#0F1E3D"      # biru navy gelap
+    TEXT_MUTED = "#64748B"     # abu-abu
+    GRID_COLOR = "#F1F5F9"     # grid abu-abu sangat muda
+    PLOT_TEXT = "#0F1E3D"
     TPL = "plotly_white"
-    # Inputs (Disamakan semua jadi warna kotak input)
-    SIDEBAR_INPUT_BG = "#F4EAE0" 
-    SIDEBAR_INPUT_TEXT = "#2C241E"
-    SIDEBAR_INPUT_BORDER = "#E5D7C9"
-    # Palette
-    PRIMARY = "#5C4033"  
-    SA = "#1E293B"   
-    SB = "#059669"   
-    SC = "#D97706"   
-    SD = "#6366F1"   
-    SE = "#EAB308"   
-    SF = "#DC2626"   
-    SG = "#0EA5E9"   
+    # Inputs
+    SIDEBAR_INPUT_BG = "#F1F5F9"
+    SIDEBAR_INPUT_TEXT = "#1E3A8A"
+    SIDEBAR_INPUT_BORDER = "#E2E8F0"
+    # Palette — dasar biru, tapi tiap kategori punya warna sendiri biar tidak "biru semua"
+    PRIMARY = "#1D4ED8"
+    SA = "#1E3A8A"   # biru tua - Pendapatan
+    SB = "#059669"   # hijau - Profit / margin di atas rata-rata (dibiarkan hijau)
+    SC = "#64748B"   # abu-abu - Biaya / Operasional
+    SD = "#6366F1"   # indigo - garis rata-rata (aksen pembeda)
+    SE = "#94A3B8"   # abu-abu muda - kategori sekunder
+    SF = "#DC2626"   # merah - margin di bawah rata-rata (dibiarkan merah)
+    SG = "#0EA5E9"   # cyan - aksen
+    # Gradasi (background utama dibuat putih bersih, gradasi hanya di elemen aksen)
+    GRADIENT_BG = "#FFFFFF"
+    GRADIENT_KPI = "linear-gradient(135deg, #FFFFFF 0%, #F1F5F9 100%)"
+    GRADIENT_BRAND = "linear-gradient(90deg, #1D4ED8 0%, #0EA5E9 100%)"
+    GRADIENT_ACCENT = "linear-gradient(135deg, #1D4ED8 0%, #38BDF8 100%)"
+    GRADIENT_INPUT = "linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%)"
 
 # ============================================================
 # CUSTOM STYLES INJECTION
@@ -181,14 +203,19 @@ html, body, [class*="css"] {{ font-family: 'Plus Jakarta Sans', sans-serif; }}
 
 /* TIGHTEN MAIN CONTAINER */
 .block-container {{
-    padding-top: 0.5rem !important;
-    padding-bottom: 0.1rem !important;
-    padding-left: 1.5rem !important;
-    padding-right: 1.5rem !important;
+    padding-top: 0.05rem !important;
+    padding-bottom: 0.05rem !important;
+    padding-left: 1.2rem !important;
+    padding-right: 1.2rem !important;
     max-width: 100% !important;
 }}
-[data-testid="stHorizontalBlock"] {{ gap: 0.8rem !important; }}
+[data-testid="stHorizontalBlock"] {{ gap: 0.5rem !important; }}
 header[data-testid="stHeader"] {{ background: transparent !important; }}
+
+/* Rapatkan jarak vertikal antar baris/blok elemen agar dashboard lebih ringkas */
+[data-testid="element-container"], [data-testid="stElementContainer"] {{
+    margin-bottom: 0.08rem !important;
+}}
 
 /* Dashboard Cards */
 div[data-testid="stVerticalBlockBorderWrapper"],
@@ -199,51 +226,76 @@ div[data-testid="stVerticalBlockBorderWrapper"] [data-testid="stVerticalBlock"] 
 div[data-testid="stVerticalBlockBorderWrapper"] {{
     border: 1px solid {BORDER_COLOR} !important;
     border-radius: 8px !important;
-    padding: 0.8rem !important;
+    padding: 0.3rem 0.35rem 0.2rem 0.35rem !important;
     box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04) !important;
 }}
 div[data-testid="stVerticalBlockBorderWrapper"] > div {{
-    gap: 0.2rem !important;
+    gap: 0.03rem !important;
 }}
 
-/* KPI Strip — Card Box Style */
+/* KPI Strip — Card Box Style dengan gradasi biru */
 .kpi-strip {{
     display: flex;
     align-items: stretch;
-    gap: 0.75rem;
-    margin-bottom: 0.75rem;
+    gap: 0.5rem;
+    margin-bottom: 0.2rem;
 }}
 .kpi-title-box {{
     flex: 1.2;
     display: flex;
     flex-direction: column;
     justify-content: center;
-    padding: 0.6rem 0.8rem;
+    padding: 0.25rem 0.7rem;
 }}
 .kpi-card {{
     flex: 1;
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    background: {CARD_BG};
+    gap: 0.6rem;
+    background: {GRADIENT_KPI};
     border: 1px solid {BORDER_COLOR};
     border-radius: 10px;
-    padding: 0.6rem 1rem;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    padding: 0.3rem 1rem 0.3rem 0.8rem;
+    box-shadow: 0 1px 4px rgba(29, 78, 216, 0.12);
     transition: box-shadow 0.2s ease, border-color 0.2s ease;
+    position: relative;
+    overflow: hidden;
+    width: 100%;
+}}
+.kpi-card::before {{
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: {GRADIENT_ACCENT};
 }}
 .kpi-card:hover {{
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 14px rgba(29, 78, 216, 0.2);
     border-color: {PRIMARY};
 }}
-.kpi-icon {{
-    font-size: 1.5rem;
-    line-height: 1;
-    flex-shrink: 0;
-}}
+
 .kpi-body {{ display: flex; flex-direction: column; gap: 0.1rem; }}
-.kpi-l {{ font-size:0.7rem; color: {TEXT_MUTED}; text-transform:uppercase; letter-spacing:.06em; font-weight:700; margin:0; }}
-.kpi-v {{ font-size:1.25rem; font-weight:800; color: {TEXT_MAIN}; line-height:1.2; margin:0; }}
+.kpi-l {{ font-size:0.65rem; color: {TEXT_MUTED}; text-transform:uppercase; letter-spacing:.06em; font-weight:700; margin:0; }}
+.kpi-v {{
+    font-size:1.05rem; font-weight:800; line-height:1.2; margin:0;
+    background: {GRADIENT_BRAND};
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}}
+
+.chart-title{{
+    height:0px;
+    display:flex;
+    align-items:center;
+
+    margin:0 !important;
+    padding:0 !important;
+
+    font-size:12px;
+    font-weight:700;
+    color: {TEXT_MAIN};
+}}
 
 /* Header / Title injected in Card */
 .dash-title {{ font-size:1rem; font-weight:800; color: {TEXT_MAIN}; letter-spacing:-.02em; margin-bottom:0.1rem;}}
@@ -251,7 +303,7 @@ div[data-testid="stVerticalBlockBorderWrapper"] > div {{
 
 /* Chart box wrapper */
 .cbox {{
-    background: transparent !important; 
+    background: transparent !important;
     border: none !important;
     box-shadow: none !important;
     padding: 0 !important;
@@ -259,22 +311,20 @@ div[data-testid="stVerticalBlockBorderWrapper"] > div {{
 }}
 .ct  {{ font-size:0.75rem; font-weight:700; color: {TEXT_MAIN}; margin:0 0 0.1rem 0; letter-spacing:-.01em;}}
 
-/* Navbar brand styling (Flexbox Alignment) */
-.brand {{ font-size:1.4rem; font-weight:800; color: {TEXT_MAIN}; letter-spacing:-.02em; line-height:1.1; margin:0; padding:0; }}
+/* Navbar brand styling */
+.brand {{ font-size:1.4rem; font-weight:800; color: {PRIMARY}; letter-spacing:-.02em; line-height:1.1; margin:0; padding:0; }}
 .brand-sub {{ font-size:0.75rem; color: {TEXT_MUTED}; font-weight: 600; line-height:1.1; margin:0; padding:0; }}
-.brand-container {{ display: flex; flex-direction: column; justify-content: center; height: 40px; padding-left: 0.2rem; }}
+.brand-container {{ display: flex; flex-direction: column; justify-content: center; height: 34px; padding-left: 0.2rem; }}
 
 /* ==============================================================
    INPUT UNIFICATION (Select, Date, Popover)
 ============================================================== */
-
-/* ── 1. Wrapper Luar: Selectbox & Date Input ── */
 div[data-baseweb="select"] > div {{
     background-color: {SIDEBAR_INPUT_BG} !important;
     border: 1px solid {SIDEBAR_INPUT_BORDER} !important;
     border-radius: 8px !important;
-    min-height: 40px !important;
-    height: 40px !important;
+    min-height: 34px !important;
+    height: 34px !important;
     box-shadow: none !important;
     transition: border-color 0.2s ease !important;
 }}
@@ -282,13 +332,12 @@ div[data-baseweb="select"] > div:hover {{
     border-color: {PRIMARY} !important;
 }}
 
-/* ── 2. Date Input: wrapper LUAR yang bisa terlihat ── */
 div[data-baseweb="input"] {{
     background-color: {SIDEBAR_INPUT_BG} !important;
     border: 1px solid {SIDEBAR_INPUT_BORDER} !important;
     border-radius: 8px !important;
-    min-height: 40px !important;
-    height: 40px !important;
+    min-height: 34px !important;
+    height: 34px !important;
     box-shadow: none !important;
     transition: border-color 0.2s ease !important;
 }}
@@ -296,7 +345,6 @@ div[data-baseweb="input"]:hover {{
     border-color: {PRIMARY} !important;
 }}
 
-/* ── 3. Inner input (hapus background & border ganda) ── */
 div[data-baseweb="input"] input,
 div[data-baseweb="base-input"] input {{
     background-color: transparent !important;
@@ -308,7 +356,6 @@ div[data-baseweb="base-input"] input {{
     padding: 0 10px !important;
 }}
 
-/* ── 4. Hapus wrapper base-input agar tidak double-box ── */
 div[data-baseweb="base-input"] {{
     background-color: transparent !important;
     border: none !important;
@@ -317,29 +364,41 @@ div[data-baseweb="base-input"] {{
     height: unset !important;
 }}
 
-/* ── 5. Warna Teks Selectbox ── */
 div[data-baseweb="select"] div,
 div[data-baseweb="select"] span {{
     color: {SIDEBAR_INPUT_TEXT} !important;
     font-weight: 500 !important;
 }}
 
-/* Penyesuaian Layout Internal Popover Button */
-/* 1. Paksa tombol popover menjadi krem dengan selektor yang lebih spesifik */
+div[data-testid="stPopover"]{{
+    display:flex;
+    justify-content:flex-end;
+    align-items:center;
+    height:32px;
+}}
+
 div[data-testid="stPopover"] button {{
     background-color: {SIDEBAR_INPUT_BG} !important;
     color: {SIDEBAR_INPUT_TEXT} !important;
     border: 1px solid {SIDEBAR_INPUT_BORDER} !important;
-    border-radius: 8px !important;
-    padding: 0 12px !important;
+
+    width: 38px !important;
+    height: 26px !important;
+    min-width: 38px !important;
+    min-height: 26px !important;
+    max-height: 26px !important;
+
+    padding: 0 !important;
+
+    line-height: 1 !important;
+
     display: flex !important;
-    justify-content: space-between !important;
     align-items: center !important;
-    width: 100% !important;
-    min-height: 40px !important;
+    justify-content: center !important;
+    gap: 2px !important;
+    padding: 0 6px !important;
 }}
 
-/* 2. Container teks direntangkan dan ditarik ke kiri */
 div[data-testid="stPopover"] button > div:first-child {{
     flex-grow: 1 !important;
     display: flex !important;
@@ -347,49 +406,164 @@ div[data-testid="stPopover"] button > div:first-child {{
     align-items: center !important;
 }}
 
-/* 3. Teks rata kiri */
 div[data-testid="stPopover"] button p {{
     color: {SIDEBAR_INPUT_TEXT} !important;
     margin: 0 !important;
     text-align: left !important;
 }}
 
-/* Menghilangkan border bawaan saat aktif/focus */
 div[data-testid="stPopover"] button:focus {{
     border-color: {PRIMARY} !important;
     box-shadow: none !important;
-}}   
+}}
 
-/* 2. Mengubah Background Body Popover (Ini yang sering terlewat) */
-/* Kita targetkan elemen pembungkus di dalam popover */
 [data-testid="stPopoverBody"] {{
-    background-color: {SIDEBAR_INPUT_BG} !important; 
+    background-color: {SIDEBAR_INPUT_BG} !important;
     border: 1px solid {SIDEBAR_INPUT_BORDER} !important;
     border-radius: 8px !important;
     padding: 10px !important;
 }}
 
-/* 3. Menghilangkan sisa warna putih pada container internal popover */
 [data-testid="stPopoverBody"] > div {{
     background-color: transparent !important;
 }}
 
-/* Streamlit widgets texts inside navbar */
+/* ==============================================================
+   NAVBAR "TIPE CABANG" & "CABANG" POPOVER — dibuat berbeda dari
+   popover "☰" yang dulu dipakai di tiap grafik, disamakan dengan
+   gaya input navbar lain (selectbox provinsi & date input). Filter
+   cabang sekarang berlaku global untuk semua grafik.
+============================================================== */
+.st-key-navbar_tipe_cabang [data-testid="stPopover"] {{
+    display: block !important;
+    justify-content: unset !important;
+    height: auto !important;
+    width: 100% !important;
+}}
+.st-key-navbar_tipe_cabang [data-testid="stPopover"] button {{
+    width: 100% !important;
+    height: 34px !important;
+    min-width: unset !important;
+    min-height: 34px !important;
+    max-height: 34px !important;
+    background-color: {SIDEBAR_INPUT_BG} !important;
+    color: {SIDEBAR_INPUT_TEXT} !important;
+    border: 1px solid {SIDEBAR_INPUT_BORDER} !important;
+    border-radius: 8px !important;
+    padding: 0 12px !important;
+    box-shadow: none !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 6px !important;
+    transition: border-color 0.2s ease !important;
+}}
+.st-key-navbar_tipe_cabang [data-testid="stPopover"] button:hover {{
+    border-color: {PRIMARY} !important;
+}}
+.st-key-navbar_tipe_cabang [data-testid="stPopover"] button:focus {{
+    border-color: {PRIMARY} !important;
+    box-shadow: none !important;
+}}
+.st-key-navbar_tipe_cabang [data-testid="stPopover"] button > div:first-child {{
+    flex-grow: 1 !important;
+    display: flex !important;
+    justify-content: flex-start !important;
+    align-items: center !important;
+}}
+.st-key-navbar_tipe_cabang [data-testid="stPopover"] button p {{
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    color: {SIDEBAR_INPUT_TEXT} !important;
+    text-align: left !important;
+    margin: 0 !important;
+}}
+.st-key-navbar_tipe_cabang [data-testid="stPopover"] button::after {{
+    content: "▾";
+    font-size: 11px;
+    color: {TEXT_MUTED};
+    flex-shrink: 0;
+}}
+.st-key-navbar_tipe_cabang [data-testid="stPopoverBody"] {{
+    min-width: 220px !important;
+    max-height: 320px !important;
+    overflow-y: auto !important;
+}}
+
+/* ==============================================================
+   TOMBOL FILTER CABANG DI SAMPING KPI STRIP — dibuat kecil (bukan
+   full-width seperti input navbar) supaya tidak memakan tempat.
+   Filter ini tetap berlaku global untuk semua grafik & KPI.
+============================================================== */
+.st-key-kpi_cabang_filter {{
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    height: 100% !important;
+    margin-top: 10px !important;
+}}
+.st-key-kpi_cabang_filter [data-testid="stPopover"] {{
+    display: block !important;
+    height: auto !important;
+    width: auto !important;
+}}
+.st-key-kpi_cabang_filter [data-testid="stPopover"] button {{
+    height: 28px !important;
+    min-height: 28px !important;
+    max-height: 28px !important;
+    width: auto !important;
+    min-width: unset !important;
+    background-color: {SIDEBAR_INPUT_BG} !important;
+    color: {SIDEBAR_INPUT_TEXT} !important;
+    border: 1px solid {SIDEBAR_INPUT_BORDER} !important;
+    border-radius: 7px !important;
+    padding: 0 10px !important;
+    box-shadow: none !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 4px !important;
+    transition: border-color 0.2s ease !important;
+}}
+.st-key-kpi_cabang_filter [data-testid="stPopover"] button:hover {{
+    border-color: {PRIMARY} !important;
+}}
+.st-key-kpi_cabang_filter [data-testid="stPopover"] button:focus {{
+    border-color: {PRIMARY} !important;
+    box-shadow: none !important;
+}}
+.st-key-kpi_cabang_filter [data-testid="stPopover"] button p {{
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    color: {SIDEBAR_INPUT_TEXT} !important;
+    margin: 0 !important;
+    white-space: nowrap !important;
+}}
+.st-key-kpi_cabang_filter [data-testid="stPopover"] button::after {{
+    content: "▾";
+    font-size: 10px;
+    color: {TEXT_MUTED};
+    flex-shrink: 0;
+}}
+.st-key-kpi_cabang_filter [data-testid="stPopoverBody"] {{
+    min-width: 200px !important;
+    max-height: 300px !important;
+    overflow-y: auto !important;
+}}
+
 div[data-testid="stCheckbox"] label p,
 div[data-testid="stRadio"] label p {{
     color: {TEXT_MAIN} !important;
 }}
 
-/* ==============================================================
-   CHECKBOX KUSTOM
-============================================================== */
+/* CHECKBOX KUSTOM */
 div[data-testid="stCheckbox"] label > *:not(:has(div[data-testid="stMarkdownContainer"])):not(input) {{
-    border-radius: 4px !important; 
+    border-radius: 4px !important;
     background-color: {SIDEBAR_INPUT_BG} !important;
     border: 2px solid {SIDEBAR_INPUT_BORDER} !important;
     width: 1.25rem !important;
     height: 1.25rem !important;
-    margin-right: 0.5rem !important; 
+    margin-right: 0.5rem !important;
     display: inline-block !important;
 }}
 div[data-testid="stCheckbox"] label:has(input:checked) > *:not(:has(div[data-testid="stMarkdownContainer"])):not(input) {{
@@ -400,13 +574,11 @@ div[data-testid="stCheckbox"] label > *:not(:has(div[data-testid="stMarkdownCont
     display: none !important;
 }}
 
-/* ==============================================================
-   RADIO BUTTON - TEMA (Sejajar Horizontal, Vertikal Center)
-============================================================== */
+/* RADIO BUTTON */
 div[data-testid="stRadio"] > div {{
     display: flex !important;
     align-items: center !important;
-    height: 40px !important;
+    height: 34px !important;
 }}
 div[data-testid="stRadio"] div[role="radiogroup"] {{
     display: flex !important;
@@ -456,11 +628,36 @@ div[data-testid="stRadio"] div[role="radiogroup"] label p {{
 """, unsafe_allow_html=True)
 
 # ============================================================
-# OPTIMASI 1: CUSTOM DIVIDER
-# Mengganti st.divider() untuk mengontrol padding menjadi rapat
+# CUSTOM DIVIDER
 # ============================================================
-st.markdown(f'<hr style="margin-top: -0.5rem; margin-bottom: 1rem; border: none; border-top: 1px solid {BORDER_COLOR};">', unsafe_allow_html=True)
+st.markdown(f'<hr style="margin-top: -0.4rem; margin-bottom: 0.25rem; border: none; border-top: 1px solid {BORDER_COLOR};">', unsafe_allow_html=True)
 
+
+# ============================================================
+# BARIS KPI + FILTER CABANG
+# Urutan kolom: [Judul Provinsi & Tanggal] [Filter Cabang] [Total
+# Revenue] [Total Profit] [Avg Profit Margin] — filter cabang
+# ditaruh persis di kiri KPI "Total Revenue", bukan di ujung kanan.
+# ============================================================
+kpi_col_title, kpi_col_filter, kpi_col_rev, kpi_col_prof, kpi_col_margin = st.columns(
+    [2.4, 0.6, 1.3, 1.3, 1.3]
+)
+
+# Tombol filter cabang dirender lebih dulu supaya nilai
+# `selected_branches` sudah tersedia sebelum menghitung fdf di bawah.
+# Filter ini berlaku GLOBAL untuk KPI dan semua grafik sekaligus.
+with kpi_col_filter:
+    branch_options = sorted(
+        df[
+            (df["branch_province"] == selected_province)
+            & (df["branch_type"].isin(selected_types))
+        ]["branch_name"].unique()
+    )
+    with st.popover("Cabang", key="kpi_cabang_filter"):
+        selected_branches = []
+        for b in branch_options:
+            if st.checkbox(short_label(b), value=True, key=f"navf_branch_{b}"):
+                selected_branches.append(b)
 
 # ============================================================
 # FILTER
@@ -473,44 +670,58 @@ ndf = df[
     & (df["date"] <= end_ts)
     & (df["branch_type"].isin(selected_types))
 ]
-fdf = ndf[ndf["branch_province"] == selected_province]
+fdf = ndf[
+    (ndf["branch_province"] == selected_province)
+    & (ndf["branch_name"].isin(selected_branches))
+]
 n_cabang = fdf["branch_name"].nunique()
 
 if fdf.empty:
-    st.warning("Tidak ada data. Silakan ubah filter di sidebar atau centang tipe cabang.")
+    st.warning("Tidak ada data. Silakan ubah filter Provinsi, Tipe Cabang, Cabang, atau Rentang Tanggal.")
     st.stop()
 
-
 # ============================================================
-# KPI STRIP
+# KPI CARDS (dirender per-kolom supaya tombol filter cabang bisa
+# berada tepat di antara judul dan kartu KPI pertama)
 # ============================================================
 total_rev  = fdf["total_revenue"].sum()
 total_prof = fdf["profit"].sum()
 avg_margin = fdf["profit_margin"].mean()
 
-st.markdown(f"""
-<div class="kpi-strip">
-  <div class="kpi-title-box">
+with kpi_col_title:
+    st.markdown(f"""
+<div class="kpi-title-box">
     <div class="dash-title">{selected_province.title()} — {n_cabang} Cabang</div>
     <div class="dash-sub">{start_date.strftime('%d %b %y')} – {end_date.strftime('%d %b %y')}</div>
+</div>
+""", unsafe_allow_html=True)
+
+with kpi_col_rev:
+    st.markdown(f"""
+<div class="kpi-card">
+  <div class="kpi-body">
+    <div class="kpi-l">Total Revenue</div>
+    <div class="kpi-v">{fmt_idr(total_rev)}</div>
   </div>
-  <div class="kpi-card">
-    <div class="kpi-body">
-      <div class="kpi-l">Total Revenue</div>
-      <div class="kpi-v">{fmt_idr(total_rev)}</div>
-    </div>
+</div>
+""", unsafe_allow_html=True)
+
+with kpi_col_prof:
+    st.markdown(f"""
+<div class="kpi-card">
+  <div class="kpi-body">
+    <div class="kpi-l">Total Profit</div>
+    <div class="kpi-v">{fmt_idr(total_prof)}</div>
   </div>
-  <div class="kpi-card">
-    <div class="kpi-body">
-      <div class="kpi-l">Total Profit</div>
-      <div class="kpi-v">{fmt_idr(total_prof)}</div>
-    </div>
-  </div>
-  <div class="kpi-card">
-    <div class="kpi-body">
-      <div class="kpi-l">Avg Profit Margin</div>
-      <div class="kpi-v">{avg_margin*100:.1f}%</div>
-    </div>
+</div>
+""", unsafe_allow_html=True)
+
+with kpi_col_margin:
+    st.markdown(f"""
+<div class="kpi-card">
+  <div class="kpi-body">
+    <div class="kpi-l">Avg Profit Margin</div>
+    <div class="kpi-v">{avg_margin*100:.1f}%</div>
   </div>
 </div>
 """, unsafe_allow_html=True)
@@ -521,37 +732,31 @@ st.markdown(f"""
 # ============================================================
 BG   = "rgba(0,0,0,0)"
 CFG  = {"displayModeBar": False}
-
-# 📉 TINGGI GRAFIK DIPERKECIL
-H_CHART = 210 
+H_CHART = 215
 
 def base(fig, h, lm=0, rm=0, bm=0, is_cat_y=False):
     fig.update_layout(
         height=h, paper_bgcolor=BG, plot_bgcolor=BG,
-        template=TPL, margin=dict(l=lm, r=rm, t=5, b=bm),
-        font=dict(family="Plus Jakarta Sans", size=10, color=PLOT_TEXT),
+        template=TPL, margin=dict(l=lm, r=rm, t=2, b=bm),
+        font=dict(family="Plus Jakarta Sans", size=9, color=PLOT_TEXT),
         hoverlabel=dict(bgcolor=CARD_BG, bordercolor=BORDER_COLOR, font=dict(family="Plus Jakarta Sans", size=11, color=TEXT_MAIN)),
     )
     fig.update_xaxes(
-        gridcolor=GRID_COLOR, linecolor=BORDER_COLOR, zeroline=False, 
-        tickfont=dict(color=PLOT_TEXT, size=10), title_font=dict(color=PLOT_TEXT)
+        gridcolor=GRID_COLOR, linecolor=BORDER_COLOR, zeroline=False,
+        tickfont=dict(color=PLOT_TEXT, size=9), title_font=dict(color=PLOT_TEXT, size=9)
     )
     if is_cat_y:
         fig.update_yaxes(
-            gridcolor=GRID_COLOR, linecolor=BORDER_COLOR, zeroline=False, 
-            type="category", dtick=1, automargin=True, 
-            tickfont=dict(color=PLOT_TEXT, size=10), title_font=dict(color=PLOT_TEXT)
+            gridcolor=GRID_COLOR, linecolor=BORDER_COLOR, zeroline=False,
+            type="category", dtick=1, automargin=True,
+            tickfont=dict(color=PLOT_TEXT, size=9), title_font=dict(color=PLOT_TEXT, size=9)
         )
     else:
         fig.update_yaxes(
-            gridcolor=GRID_COLOR, linecolor=BORDER_COLOR, zeroline=False, 
-            tickfont=dict(color=PLOT_TEXT, size=10), title_font=dict(color=PLOT_TEXT)
+            gridcolor=GRID_COLOR, linecolor=BORDER_COLOR, zeroline=False,
+            tickfont=dict(color=PLOT_TEXT, size=9), title_font=dict(color=PLOT_TEXT, size=9)
         )
     return fig
-
-def short(series):
-    return series.str.title().str.replace("Kopiseru ", "", regex=False)
-
 
 # ============================================================
 # ROW 1: 3 Column Grid
@@ -561,18 +766,31 @@ r1_col1, r1_col2, r1_col3 = st.columns(3)
 with r1_col1:
     with st.container():
         st.markdown('<div class="ct">Tren Pendapatan, Biaya & Profit</div>', unsafe_allow_html=True)
+
         tr = (fdf.set_index("date").resample("ME")
               .agg(rev=("total_revenue","sum"), cost=("operating_cost","sum"), prof=("profit","sum"))
               .reset_index())
         sc1, sfx1 = idr_scale(tr[["rev","cost","prof"]].stack())
         fig1 = go.Figure()
-        fig1.add_trace(go.Scatter(x=tr["date"], y=tr["rev"]/sc1, name="Pendapatan", mode="lines", line=dict(color=SA, width=2)))
-        fig1.add_trace(go.Scatter(x=tr["date"], y=tr["cost"]/sc1, name="Biaya", mode="lines", line=dict(color=SC, width=2)))
-        fig1.add_trace(go.Scatter(x=tr["date"], y=tr["prof"]/sc1, name="Profit", mode="lines", line=dict(color=SB, width=2)))
+        # Area gradasi untuk Pendapatan (fill di bawah garis)
+        fig1.add_trace(go.Scatter(
+            x=tr["date"], y=tr["rev"]/sc1, name="Pendapatan", mode="lines",
+            line=dict(color=SA, width=2.5),
+            fill="tozeroy", fillcolor="rgba(59,130,246,0.15)"
+        ))
+        fig1.add_trace(go.Scatter(
+            x=tr["date"], y=tr["cost"]/sc1, name="Biaya", mode="lines",
+            line=dict(color=SC, width=2, dash="dot")
+        ))
+        fig1.add_trace(go.Scatter(
+            x=tr["date"], y=tr["prof"]/sc1, name="Profit", mode="lines",
+            line=dict(color=SB, width=2.5),
+            fill="tozeroy", fillcolor="rgba(14,165,233,0.12)"
+        ))
         fig1.update_layout(
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0, font=dict(color=PLOT_TEXT)),
+            legend=dict(orientation="h", yanchor="bottom", y=1.01, x=0, font=dict(size=9, color=PLOT_TEXT)),
             xaxis=dict(tickformat="%Y"),
-            yaxis=dict(title=dict(text=f"Nilai Rupiah ({sfx1.strip()})", font=dict(size=10, color=PLOT_TEXT)), tickformat=",.1f"),
+            yaxis=dict(title=dict(text=f"Nilai Rupiah ({sfx1.strip()})", font=dict(size=9, color=PLOT_TEXT)), tickformat=",.1f"),
         )
         base(fig1, h=H_CHART, lm=55)
         st.plotly_chart(fig1, width="stretch", config=CFG)
@@ -580,55 +798,163 @@ with r1_col1:
 with r1_col2:
     with st.container():
         st.markdown('<div class="ct">Pendapatan dan Biaya per Cabang</div>', unsafe_allow_html=True)
+
         cb = fdf.groupby("branch_name").agg(rev=("total_revenue","sum"), cost=("operating_cost","sum")).reset_index().sort_values("rev", ascending=True)
         cb["lbl"] = short(cb["branch_name"])
-        sc2, sfx2 = idr_scale(cb[["rev","cost"]].stack())
-        fig2 = go.Figure()
-        fig2.add_trace(go.Bar(name="Biaya", y=cb["lbl"], x=cb["cost"]/sc2, orientation="h", marker_color=SC))
-        fig2.add_trace(go.Bar(name="Pendapatan", y=cb["lbl"], x=cb["rev"]/sc2, orientation="h", marker_color=SA))
-        fig2.update_layout(
-            barmode="group", showlegend=True,
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0, font=dict(color=PLOT_TEXT)),
-            xaxis=dict(tickformat=",.1f", ticksuffix=sfx2),
-            font=dict(color=PLOT_TEXT)
-        )
-        base(fig2, h=H_CHART, is_cat_y=True)
+
+        if len(cb) == 1:
+            rev_val = cb.iloc[0]["rev"]
+            cost_val = cb.iloc[0]["cost"]
+            fig2 = go.Figure(data=[go.Pie(
+                labels=["Pendapatan", "Biaya"],
+                values=[rev_val, cost_val],
+                hole=0.62,
+                marker=dict(colors=[SA, SC]),
+                textinfo="percent",
+                textposition="inside",
+                sort=False
+            )])
+            fig2.update_layout(
+                showlegend=True,
+                legend=dict(orientation="h", x=0, y=0.99, xanchor="left", yanchor="bottom", font=dict(size=9, color=PLOT_TEXT), tracegroupgap=4),
+                font=dict(color=PLOT_TEXT),
+                margin=dict(l=0, r=0, t=0, b=22)
+            )
+            fig2.update_traces(domain=dict(x=[0.28, 0.72], y=[0.16, 0.92]))
+            base(fig2, h=H_CHART)
+        else:
+            sc2, sfx2 = idr_scale(cb[["rev","cost"]].stack())
+            fig2 = go.Figure()
+            fig2.add_trace(go.Bar(
+                name="Biaya", y=cb["lbl"], x=cb["cost"]/sc2, orientation="h",
+                marker_color=SC
+            ))
+            fig2.add_trace(go.Bar(
+                name="Pendapatan", y=cb["lbl"], x=cb["rev"]/sc2, orientation="h",
+                marker_color=SA
+            ))
+            fig2.update_layout(
+                barmode="group", showlegend=True,
+                legend=dict(orientation="h", yanchor="bottom", y=1.01, x=0, font=dict(size=9, color=PLOT_TEXT)),
+                xaxis=dict(tickformat=",.1f", ticksuffix=sfx2),
+                font=dict(color=PLOT_TEXT)
+            )
+            base(fig2, h=H_CHART, is_cat_y=True)
+
         st.plotly_chart(fig2, width="stretch", config=CFG)
 
 with r1_col3:
     with st.container():
         st.markdown('<div class="ct">Profit Margin Cabang</div>', unsafe_allow_html=True)
+
+        # Average Margin
         nat_margin = ndf["profit_margin"].mean()
-        mg = fdf.groupby("branch_name")["profit_margin"].mean().reset_index().sort_values("profit_margin", ascending=True)
-        mg["lbl"] = short(mg["branch_name"])
-        mcol = [SB if v >= nat_margin else SF for v in mg["profit_margin"]]
-        fig3 = go.Figure(go.Bar(
-            x=mg["profit_margin"], y=mg["lbl"], orientation="h", marker_color=mcol,
-            cliponaxis=False, showlegend=False
-        ))
-        fig3.add_vline(x=nat_margin, line_dash="dash", line_color=SD)
-        fig3.add_annotation(
-            x=nat_margin, y=-0.08, yref="paper",
-            text=f"- - - Rata-rata Margin ({nat_margin*100:.1f}%)",
-            showarrow=False,
-            xanchor="left", yanchor="top",
-            font=dict(size=8, color=SD),
-            align="left",
+
+        # Data
+        mg = (
+            fdf.groupby("branch_name")["profit_margin"]
+            .mean()
+            .reset_index()
+            .sort_values("profit_margin", ascending=True)
         )
-        x_min = mg["profit_margin"].min()
+
+        mg["lbl"] = short(mg["branch_name"])
+
+        # Pisahkan menjadi dua trace agar muncul legenda
+        mg_green = mg.copy()
+        mg_green["value"] = mg_green["profit_margin"].where(
+            mg_green["profit_margin"] >= nat_margin
+        )
+
+        mg_red = mg.copy()
+        mg_red["value"] = mg_red["profit_margin"].where(
+            mg_red["profit_margin"] < nat_margin
+        )
+
+        fig3 = go.Figure()
+
+        # Bar merah (Below Average)
+        fig3.add_trace(
+            go.Bar(
+                x=mg_red["value"],
+                y=mg_red["lbl"],
+                orientation="h",
+                marker_color=SF,
+                name="Below Average",
+            )
+        )
+
+        # Bar hijau (Above Average)
+        fig3.add_trace(
+            go.Bar(
+                x=mg_green["value"],
+                y=mg_green["lbl"],
+                orientation="h",
+                marker_color=SB,
+                name="Above Average",
+            )
+        )
+
+        # Garis Average
+        fig3.add_vline(
+            x=nat_margin,
+            line_dash="dash",
+            line_color=SD,
+            line_width=2,
+        )
+
+        fig3.add_annotation(
+            x=nat_margin,
+            y=-0.08,
+            yref="paper",
+            text=f"Average Margin ({nat_margin*100:.1f}%)",
+            showarrow=False,
+            xanchor="left",
+            yanchor="top",
+            font=dict(size=10, color=SD),
+        )
+
+        mg_min = mg["profit_margin"].min()
+        mg_max = mg["profit_margin"].max()
+
+        if len(mg) == 1:
+            # Dengan hanya 1 cabang, mg_min == mg_max, sehingga rumus "zoom"
+            # di bawah (x_min*1.35 s.d. x_max*1.45) akan menghasilkan rentang
+            # yang meleset dari nilai batangnya sendiri -> batang jadi tidak
+            # terlihat sama sekali. Di sini rentang dihitung dari nilai
+            # cabang tsb + garis rata-rata nasional, supaya keduanya selalu
+            # terlihat.
+            lo = min(mg_min, nat_margin, 0)
+            hi = max(mg_max, nat_margin, 0)
+            span = hi - lo
+            pad = span * 0.4 if span > 0 else max(abs(hi), 0.02) * 0.4
+            x_range = [lo - pad * 0.5, hi + pad]
+        else:
+            x_range = [mg_min * 1.35, mg_max * 1.45]
+
         fig3.update_layout(
-            showlegend=False,
+            barmode="overlay",
+            showlegend=True,
+            legend=dict(
+                orientation="h",
+                yanchor="bottom",
+                y=1.01,
+                x=0,
+                font=dict(size=9, color=PLOT_TEXT),
+            ),
             xaxis=dict(
                 showticklabels=False,
                 showgrid=True,
                 zeroline=True,
                 automargin=True,
-                range=[x_min * 1.35, mg["profit_margin"].max() * 1.45],
+                range=x_range,
             ),
-            font=dict(color=PLOT_TEXT)
+            font=dict(color=PLOT_TEXT),
         )
+
         base(fig3, h=H_CHART, is_cat_y=True, lm=80, rm=45)
-        fig3.update_layout(margin=dict(b=30))
+        fig3.update_layout(margin=dict(b=32))
+
         st.plotly_chart(fig3, width="stretch", config=CFG)
 
 # ============================================================
@@ -639,56 +965,274 @@ r2_col1, r2_col2, r2_col3 = st.columns(3)
 with r2_col1:
     with st.container():
         st.markdown('<div class="ct">Rata-rata Nilai Transaksi</div>', unsafe_allow_html=True)
+
         nat_ticket = ndf["avg_ticket_size"].mean()
         tk = fdf.groupby("branch_name")["avg_ticket_size"].mean().reset_index().sort_values("avg_ticket_size", ascending=True)
         tk["lbl"] = short(tk["branch_name"])
-        tkcol = [SA if v >= nat_ticket else SE for v in tk["avg_ticket_size"]]
-        sc4, sfx4 = idr_scale(tk["avg_ticket_size"])
-        fig4 = go.Figure(go.Bar(
-            x=tk["avg_ticket_size"]/sc4, y=tk["lbl"], orientation="h", marker_color=tkcol
-        ))
-        fig4.add_vline(x=nat_ticket/sc4, line_dash="dash", line_color=SD)
-        fig4.update_layout(xaxis=dict(tickformat=",.1f", ticksuffix=sfx4), font=dict(color=PLOT_TEXT))
-        base(fig4, h=H_CHART, is_cat_y=True)
+
+        if len(tk) == 1:
+            branch_val = tk.iloc[0]["avg_ticket_size"]
+            fig4 = go.Figure(data=[go.Pie(
+                labels=["Cabang Ini", "Rata-rata Nasional"],
+                values=[branch_val, nat_ticket],
+                hole=0.62,
+                marker=dict(colors=[TEXT_MAIN, TEXT_MUTED]),
+                textinfo="percent",
+                textposition="inside",
+                sort=False
+            )])
+            fig4.update_layout(
+                showlegend=True,
+                legend=dict(orientation="h", x=0, y=0.99, xanchor="left", yanchor="bottom", font=dict(size=9, color=PLOT_TEXT), tracegroupgap=4),
+                font=dict(color=PLOT_TEXT),
+                margin=dict(l=0, r=0, t=0, b=22)
+            )
+            fig4.update_traces(domain=dict(x=[0.28, 0.72], y=[0.16, 0.92]))
+            base(fig4, h=H_CHART)
+        else:
+            tkcol = [SA if v >= nat_ticket else SC for v in tk["avg_ticket_size"]]
+            sc4, sfx4 = idr_scale(tk["avg_ticket_size"])
+            fig4 = go.Figure(go.Bar(
+                x=tk["avg_ticket_size"]/sc4, y=tk["lbl"], orientation="h", marker_color=tkcol
+            ))
+            fig4.add_vline(x=nat_ticket/sc4, line_dash="dash", line_color=SD)
+            fig4.add_annotation(
+                x=nat_ticket/sc4,
+                y=-0.10,
+                yref="paper",
+                text=f"Average Transaction ({fmt_idr(nat_ticket)})",
+                showarrow=False,
+                xanchor="left",
+                yanchor="top",
+                font=dict(
+                    size=10,
+                    color=SD
+                ),
+            )
+            base(fig4, h=H_CHART, is_cat_y=True)
+            fig4.update_layout(margin=dict(b=32))
+
         st.plotly_chart(fig4, width="stretch", config=CFG)
 
 with r2_col2:
     with st.container():
         st.markdown('<div class="ct">Komposisi Channel Penjualan</div>', unsafe_allow_html=True)
+
         ch = fdf.groupby("branch_name")[["dine_in_percent","delivery_percent","takeaway_percent"]].mean().reset_index().sort_values("dine_in_percent", ascending=True)
         ch["lbl"] = short(ch["branch_name"])
-        fig6 = go.Figure()
-        fig6.add_trace(go.Bar(name="Dine-in", y=ch["lbl"], x=ch["dine_in_percent"], orientation="h", marker_color=PRIMARY))
-        fig6.add_trace(go.Bar(name="Delivery", y=ch["lbl"], x=ch["delivery_percent"], orientation="h", marker_color=SC))
-        fig6.add_trace(go.Bar(name="Takeaway", y=ch["lbl"], x=ch["takeaway_percent"], orientation="h", marker_color=SE))
-        fig6.update_layout(
-            barmode="stack", showlegend=True, 
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0, font=dict(color=PLOT_TEXT), traceorder="normal"),
-            xaxis=dict(ticksuffix="%"), font=dict(color=PLOT_TEXT)
-        )
-        base(fig6, h=H_CHART, is_cat_y=True)
+
+        if len(ch) == 1:
+            dine_val = ch.iloc[0]["dine_in_percent"]
+            del_val = ch.iloc[0]["delivery_percent"]
+            tk_val = ch.iloc[0]["takeaway_percent"]
+            fig6 = go.Figure(data=[go.Pie(
+                labels=["Dine-in", "Delivery", "Takeaway"],
+                values=[dine_val, del_val, tk_val],
+                hole=0.62,
+                marker=dict(colors=[SA, SG, SC]),
+                textinfo="percent",
+                textposition="inside",
+                sort=False
+            )])
+            fig6.update_layout(
+                showlegend=True,
+                legend=dict(orientation="h", x=0, y=0.99, xanchor="left", yanchor="bottom", font=dict(size=9, color=PLOT_TEXT), tracegroupgap=4),
+                font=dict(color=PLOT_TEXT),
+                margin=dict(l=0, r=0, t=0, b=22)
+            )
+            fig6.update_traces(domain=dict(x=[0.28, 0.72], y=[0.16, 0.92]))
+            base(fig6, h=H_CHART)
+        else:
+            fig6 = go.Figure()
+            fig6.add_trace(go.Bar(name="Dine-in", y=ch["lbl"], x=ch["dine_in_percent"], orientation="h", marker_color=SA))
+            fig6.add_trace(go.Bar(name="Delivery", y=ch["lbl"], x=ch["delivery_percent"], orientation="h", marker_color=SG))
+            fig6.add_trace(go.Bar(name="Takeaway", y=ch["lbl"], x=ch["takeaway_percent"], orientation="h", marker_color=SC))
+            fig6.update_layout(
+                barmode="stack", showlegend=True,
+                legend=dict(orientation="h", yanchor="bottom", y=1.01, x=0, font=dict(size=9, color=PLOT_TEXT), traceorder="normal"),
+                xaxis=dict(ticksuffix="%"), font=dict(color=PLOT_TEXT)
+            )
+            base(fig6, h=H_CHART, is_cat_y=True)
+
         st.plotly_chart(fig6, width="stretch", config=CFG)
 
 with r2_col3:
     with st.container():
-        st.markdown('<div class="ct">Transaksi Weekend dan Weekday</div>', unsafe_allow_html=True)
-        wd = fdf.groupby(["branch_name","is_weekend"])["total_transactions"].mean().reset_index()
-        wd_pivot = wd.pivot(index="branch_name", columns="is_weekend", values="total_transactions")
-        if True not in wd_pivot.columns: wd_pivot[True] = 0.0
-        if False not in wd_pivot.columns: wd_pivot[False] = 0.0
-        wd_pivot = wd_pivot.fillna(0.0).reset_index().rename(columns={False: "Weekday", True: "Weekend"})
-        wd_pivot["lbl"]  = short(wd_pivot["branch_name"])
-        wd_pivot["diff"] = wd_pivot["Weekend"] - wd_pivot["Weekday"]
-        wd_pivot = wd_pivot.sort_values("diff", ascending=True) 
-        
-        fig7 = go.Figure()
-        fig7.add_trace(go.Bar(name="Weekday", y=wd_pivot["lbl"], x=wd_pivot["Weekday"], orientation="h", marker_color=TEXT_MAIN))
-        fig7.add_trace(go.Bar(name="Weekend", y=wd_pivot["lbl"], x=wd_pivot["Weekend"], orientation="h", marker_color=TEXT_MUTED))
-        fig7.update_layout(
-            barmode="group", showlegend=True, 
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0, font=dict(color=PLOT_TEXT)),
-            xaxis=dict(title=dict(text="Jumlah Transaksi", font=dict(size=10, color=PLOT_TEXT))),
-            font=dict(color=PLOT_TEXT)
+        st.markdown(
+            '<div class="chart-title">Transaksi Weekend dan Weekday</div>',
+            unsafe_allow_html=True
         )
-        base(fig7, h=H_CHART, is_cat_y=True, bm=30)
-        st.plotly_chart(fig7, width="stretch", config=CFG)
+
+        # ============================
+        # Data
+        # ============================
+        chart_df = fdf
+        wd = (
+            chart_df
+            .groupby(["branch_name", "is_weekend"])["total_transactions"]
+            .mean()
+            .reset_index()
+        )
+        wd_pivot = (
+            wd.pivot(
+                index="branch_name",
+                columns="is_weekend",
+                values="total_transactions"
+            )
+            .fillna(0)
+        )
+        if True not in wd_pivot.columns:
+            wd_pivot[True] = 0
+        if False not in wd_pivot.columns:
+            wd_pivot[False] = 0
+        wd_pivot = (
+            wd_pivot
+            .reset_index()
+            .rename(columns={
+                False: "Weekday",
+                True: "Weekend"
+            })
+        )
+        wd_pivot["lbl"] = short(wd_pivot["branch_name"])
+        # ============================
+        # PIE CHART
+        # ============================
+        if len(wd_pivot) == 1:
+            weekend = wd_pivot.iloc[0]["Weekend"]
+            weekday = wd_pivot.iloc[0]["Weekday"]
+            fig7 = go.Figure(
+                data=[
+                    go.Pie(
+                        labels=["Weekday", "Weekend"],
+                        values=[weekday, weekend],
+
+                        hole=0.62,
+
+                        marker=dict(
+                            colors=[TEXT_MAIN, TEXT_MUTED]
+                        ),
+
+                        textinfo="percent",
+
+                        textposition="inside",
+
+                        sort=False
+                    )
+                ]
+            )
+            fig7.update_layout(
+                barmode="group",
+                showlegend=True,
+                legend=dict(
+                    orientation="h",
+                    x=0,
+                    y=0.99,
+                    xanchor="left",
+                    yanchor="bottom",
+                    font=dict(
+                        size=9,
+                        color=PLOT_TEXT
+                    ),
+                    tracegroupgap=4,
+                ),
+                xaxis=dict(
+                    title=dict(
+                        text="Jumlah Transaksi",
+                        font=dict(
+                            size=9,
+                            color=PLOT_TEXT
+                        )
+                    )
+                ),
+                font=dict(color=PLOT_TEXT),
+                margin=dict(
+                    l=0,
+                    r=0,
+                    t=0,
+                    b=22
+                )
+            )
+            fig7.update_traces(
+                domain=dict(
+                    x=[0.28, 0.72],
+                    y=[0.16, 0.92]
+                )
+            )
+            base(fig7, h=H_CHART)
+        else:
+            wd_pivot["diff"] = (
+                wd_pivot["Weekend"] -
+                wd_pivot["Weekday"]
+            )
+            wd_pivot = wd_pivot.sort_values(
+                "diff",
+                ascending=True
+            )
+
+            fig7 = go.Figure()
+
+            fig7.add_trace(
+                go.Bar(
+                    name="Weekday",
+                    y=wd_pivot["lbl"],
+                    x=wd_pivot["Weekday"],
+                    orientation="h",
+                    marker_color=TEXT_MAIN,
+                )
+            )
+
+            fig7.add_trace(
+                go.Bar(
+                    name="Weekend",
+                    y=wd_pivot["lbl"],
+                    x=wd_pivot["Weekend"],
+                    orientation="h",
+                    marker_color=TEXT_MUTED,
+                )
+            )
+
+            base(
+                fig7,
+                h=H_CHART,
+                is_cat_y=True,
+                bm=22
+            )
+            fig7.update_xaxes(
+                title=dict(
+                    text="Jumlah Transaksi",
+                    font=dict(size=9, color=PLOT_TEXT),
+                    standoff=10
+                ),
+                title_standoff=15
+            )
+            fig7.update_layout(
+                barmode="group",
+                showlegend=True,
+                legend=dict(
+                    orientation="h",
+                    x=0,
+                    y=1.005,
+                    xanchor="left",
+                    yanchor="bottom",
+                    font=dict(
+                        size=9,
+                        color=PLOT_TEXT
+                    ),
+                    bgcolor="rgba(0,0,0,0)"
+                ),
+                margin=dict(
+                    l=0,
+                    r=0,
+                    t=0,
+                    b=22
+                )
+            )
+
+            fig7.update_yaxes(
+                domain=[0.10, 1.00]
+            )
+        st.plotly_chart(
+            fig7,
+            width="stretch",
+            config=CFG
+        )
